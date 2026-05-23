@@ -12,7 +12,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260523_203738
+  Build: 20260523_205901
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -120,12 +120,73 @@ tailwind.config = {
   .form-group { margin-bottom:14px; }
   .status-bar { height:4px; border-radius:2px; background:#334155; overflow:hidden; margin-top:8px; }
   .status-fill { height:100%; border-radius:2px; transition:width .5s; }
-  @media(max-width:768px) { .grid2,.grid3,.grid4 { grid-template-columns:1fr; } #sidebar { display:none; } }
+  
+/* SIDEBAR — desktop: flex, mobile: none */
+#sidebar { display: flex; }
+
+@media(max-width: 768px) {
+  /* Esconde sidebar */
+  #sidebar { display: none !important; }
+
+  /* App ocupa largura total */
+  #appScreen { flex-direction: column !important; }
+
+  /* Main ocupa tudo */
+  #appScreen > div:last-child { width: 100% !important; min-width: 0 !important; }
+
+  /* Header menor */
+  header { padding: 0 12px !important; height: 52px !important; }
+
+  /* Conteúdo com padding bottom para navbar */
+  #pageContent { padding: 12px 10px 75px 10px !important; }
+
+  /* Grids viram coluna única */
+  .grid2, .grid3, .grid4 { grid-template-columns: 1fr !important; }
+
+  /* Modal como bottom sheet */
+  .modal-overlay { align-items: flex-end !important; padding: 0 !important; }
+  .modal-box {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 18px 18px 0 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Formulários em coluna única */
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tabelas com scroll */
+  .card { overflow-x: auto; }
+  table { min-width: 500px; font-size: 12px !important; }
+
+  /* Botões mais fáceis de tocar */
+  .btn { min-height: 44px !important; }
+  button { min-height: 38px; }
+}
   .hidden { display:none !important; }
   .page { animation: fadeIn .25s ease; }
   @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
   .skeleton { background:linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:6px; height:16px; }
   @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  /* Navbar mobile */
+  #mobileNav { display: none; }
+  @media(max-width:768px) { #mobileNav { display: flex !important; } }
+  .mnav-btn {
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    background:none;border:none;color:#64748b;font-size:10px;font-weight:600;
+    padding:4px 6px;cursor:pointer;border-radius:8px;min-width:48px;
+  }
+  .mnav-btn.active { color:#ef4444; }
+  .mnav-more-btn {
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    background:#0f172a;border:1px solid #334155;color:#94a3b8;
+    font-size:24px;padding:14px 8px;cursor:pointer;border-radius:10px;width:100%;
+  }
+  .mnav-more-btn span { font-size:11px;font-weight:600; }
   .tech { font-family:'IBM Plex Mono',monospace; color:#f59e0b; }
   .toast { position:fixed; bottom:24px; right:24px; background:#1e293b; border:1px solid #334155; border-radius:10px; padding:12px 20px; font-size:14px; z-index:999; animation:slideUp .3s ease; max-width:320px; }
   @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
@@ -158,10 +219,10 @@ tailwind.config = {
 <!-- ============================================================
   APP PRINCIPAL (após login)
 ============================================================ -->
-<div id="appScreen" style="display:none;min-height:100vh;">
+<div id="appScreen" style="display:none;min-height:100vh;min-width:0;">
 
   <!-- SIDEBAR -->
-  <aside id="sidebar" style="width:220px;background:#1e293b;border-right:1px solid #334155;display:flex;flex-direction:column;flex-shrink:0;">
+  <aside id="sidebar" style="width:220px;background:#1e293b;border-right:1px solid #334155;flex-direction:column;flex-shrink:0;">
     <!-- Logo -->
     <div style="padding:20px 16px;border-bottom:1px solid #334155;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -1801,5 +1862,30 @@ function noVehicleMsg(icon) {
   </div>`;
 }
 </script>
+<!-- NAVBAR BOTTOM MOBILE -->
+<nav id="mobileNav" style="display:none;position:fixed;bottom:0;left:0;right:0;
+  background:#1e293b;border-top:1px solid #334155;z-index:100;
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  justify-content:space-around;align-items:center;">
+  <button onclick="showPage('painel')"    id="mnav-painel"    class="mnav-btn"><span style="font-size:22px;">📊</span><span>Painel</span></button>
+  <button onclick="showPage('vehicles')"  id="mnav-vehicles"  class="mnav-btn"><span style="font-size:22px;">🚗</span><span>Veículos</span></button>
+  <button onclick="showPage('fuel')"      id="mnav-fuel"      class="mnav-btn"><span style="font-size:22px;">⛽</span><span>Abast.</span></button>
+  <button onclick="showPage('expenses')"  id="mnav-expenses"  class="mnav-btn"><span style="font-size:22px;">🔧</span><span>Despesas</span></button>
+  <button onclick="toggleMobileMenu()"    id="mnav-more"      class="mnav-btn"><span style="font-size:22px;">☰</span><span>Mais</span></button>
+</nav>
+
+<!-- MENU "MAIS" MOBILE -->
+<div id="mobileMoreMenu" style="display:none;position:fixed;bottom:65px;left:0;right:0;
+  background:#1e293b;border:1px solid #334155;border-radius:18px 18px 0 0;
+  z-index:99;padding:16px 12px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+    <button onclick="showPage('insurance');toggleMobileMenu()"  class="mnav-more-btn">🛡️<br/><span>Seguro</span></button>
+    <button onclick="showPage('predictive');toggleMobileMenu()" class="mnav-more-btn">🔮<br/><span>Alertas</span></button>
+    <button onclick="showPage('motoristas');toggleMobileMenu()" class="mnav-more-btn">👤<br/><span>Motoristas</span></button>
+    <button onclick="showPage('oficinas');toggleMobileMenu()"   class="mnav-more-btn">🏭<br/><span>Oficinas</span></button>
+    <button onclick="doLogout()"                                 class="mnav-more-btn" style="color:#f87171;">⏻<br/><span>Sair</span></button>
+  </div>
+</div>
+
 </body>
 </html>
