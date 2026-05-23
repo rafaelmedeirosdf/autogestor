@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<title>AutoGestor Premium</title>
+
+<!-- ============================================================
+  AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
+  Arquivo único HTML — sem instalação necessária
+  Firebase via CDN + Tailwind via CDN
+  Build: 20260523_174625
+============================================================ -->
+
+<!-- Tailwind CSS via CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Chart.js para gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- jsPDF para geração de PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<!-- Firebase via CDN (modular compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+<script>
+// ============================================================
+// ⚠️  COLE AQUI O SEU firebaseConfig DO FIREBASE CONSOLE  ⚠️
+// Instruções: console.firebase.google.com → Seu projeto
+// → Configurações ⚙️ → Geral → Seus apps → </> → firebaseConfig
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCPbhxvj-63xCIB5IDyBVkXWArkNqs_EVs",
+  authDomain: "autogestor-661aa.firebaseapp.com",
+  projectId: "autogestor-661aa",
+  storageBucket: "autogestor-661aa.firebasestorage.app",
+  messagingSenderId: "993311470550",
+  appId: "1:993311470550:web:70455b02892d81af3f6a77"
+};
+// ============================================================
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+const storage = firebase.storage();
+</script>
+
+<script>
+// Configura Tailwind com tema dark customizado
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        bg:      '#0f172a',
+        surface: '#1e293b',
+        border:  '#334155',
+      },
+      fontFamily: {
+        sans: ['"IBM Plex Sans"', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'monospace'],
+      }
+    }
+  }
+}
+</script>
+
+<style>
+  * { box-sizing: border-box; }
+  body { background:#0f172a; color:#f1f5f9; font-family:'IBM Plex Sans',sans-serif; margin:0; }
+  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:#0f172a; }
+  ::-webkit-scrollbar-thumb { background:#334155; border-radius:99px; }
+  input, select, textarea {
+    background:#1e293b; border:1px solid #334155; color:#f1f5f9;
+    border-radius:8px; padding:8px 12px; width:100%; font-family:inherit;
+    font-size:14px; outline:none; transition:border .2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color:#3b82f6; }
+  input:disabled { opacity:.4; cursor:not-allowed; }
+  label { color:#94a3b8; font-size:13px; font-weight:500; display:block; margin-bottom:4px; }
+  .card { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:20px; }
+  .btn  { padding:9px 18px; border-radius:8px; font-weight:600; font-size:14px; cursor:pointer; border:none; transition:all .15s; }
+  .btn-primary { background:#ef4444; color:#fff; }
+  .btn-primary:hover { background:#dc2626; }
+  .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+  .btn-secondary { background:#334155; color:#f1f5f9; }
+  .btn-secondary:hover { background:#475569; }
+  .btn-ghost { background:transparent; color:#94a3b8; border:1px solid #334155; }
+  .btn-ghost:hover { color:#f1f5f9; border-color:#64748b; }
+  .badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:99px; font-size:11px; font-weight:600; }
+  .badge-green  { background:rgba(34,197,94,.15);  color:#4ade80; border:1px solid rgba(34,197,94,.3); }
+  .badge-red    { background:rgba(239,68,68,.15);   color:#f87171; border:1px solid rgba(239,68,68,.3); }
+  .badge-yellow { background:rgba(245,158,11,.15);  color:#fbbf24; border:1px solid rgba(245,158,11,.3); }
+  .badge-blue   { background:rgba(59,130,246,.15);  color:#60a5fa; border:1px solid rgba(59,130,246,.3); }
+  .badge-gray   { background:rgba(100,116,139,.15); color:#94a3b8; border:1px solid rgba(100,116,139,.3); }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; cursor:pointer; color:#94a3b8; font-size:14px; transition:all .15s; margin:1px 6px; }
+  .nav-item:hover { background:#334155; color:#f1f5f9; }
+  .nav-item.active { background:#334155; color:#f1f5f9; border-left:2px solid #ef4444; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.05em; padding:10px 14px; text-align:left; border-bottom:1px solid #334155; }
+  td { padding:10px 14px; border-bottom:1px solid rgba(51,65,85,.5); }
+  tr:hover td { background:rgba(51,65,85,.3); }
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:100; padding:16px; }
+  .modal-box { background:#1e293b; border:1px solid #334155; border-radius:16px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; }
+  .modal-header { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid #334155; }
+  .modal-body { padding:24px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  .grid4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:14px; }
+  .form-group { margin-bottom:14px; }
+  .status-bar { height:4px; border-radius:2px; background:#334155; overflow:hidden; margin-top:8px; }
+  .status-fill { height:100%; border-radius:2px; transition:width .5s; }
+  @media(max-width:768px) { .grid2,.grid3,.grid4 { grid-template-columns:1fr; } #sidebar { display:none; } }
+  .hidden { display:none !important; }
+  .page { animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .skeleton { background:linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:6px; height:16px; }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  .tech { font-family:'IBM Plex Mono',monospace; color:#f59e0b; }
+  .toast { position:fixed; bottom:24px; right:24px; background:#1e293b; border:1px solid #334155; border-radius:10px; padding:12px 20px; font-size:14px; z-index:999; animation:slideUp .3s ease; max-width:320px; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+
+<body>
+
+<!-- ============================================================
+  TELA DE LOGIN
+============================================================ -->
+<div id="loginScreen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div style="width:100%;max-width:380px;">
+    <div class="card" style="text-align:center;padding:40px 32px;">
+      <div style="font-size:56px;margin-bottom:16px;">🚗</div>
+      <h1 style="font-size:26px;font-weight:700;color:#f1f5f9;margin:0 0 4px;">AutoGestor</h1>
+      <p style="color:#ef4444;font-size:11px;letter-spacing:.15em;font-weight:600;text-transform:uppercase;margin-bottom:24px;">Premium</p>
+      <p style="color:#94a3b8;font-size:14px;margin-bottom:28px;line-height:1.6;">Sistema de gestão de frota<br>automotiva pessoal</p>
+      <div style="border-top:1px solid #334155;margin-bottom:24px;"></div>
+      <button onclick="doLogin()" id="loginBtn" class="btn" style="width:100%;background:#fff;color:#1e293b;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Entrar com Google
+      </button>
+      <p id="loginError" class="hidden" style="color:#f87171;font-size:13px;margin-top:12px;"></p>
+      <p style="color:#475569;font-size:11px;margin-top:16px;">🔒 Seus dados são privados e acessíveis apenas por você</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+  APP PRINCIPAL (após login)
+============================================================ -->
+<div id="appScreen" style="display:none;min-height:100vh;">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" style="width:220px;background:#1e293b;border-right:1px solid #334155;display:flex;flex-direction:column;flex-shrink:0;">
+    <!-- Logo -->
+    <div style="padding:20px 16px;border-bottom:1px solid #334155;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">🚗</span>
+        <div>
+          <p style="font-weight:700;font-size:14px;margin:0;color:#f1f5f9;">AutoGestor</p>
+          <p style="color:#ef4444;font-size:9px;letter-spacing:.12em;font-weight:600;text-transform:uppercase;margin:0;">Premium</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Veículo ativo -->
+    <div style="padding:10px;border-bottom:1px solid #334155;">
+      <div id="vehicleSwitcher" onclick="showPage('vehicles')" style="background:#334155;border-radius:8px;padding:10px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+        <span>🚗</span>
+        <div style="flex:1;min-width:0;">
+          <p id="sidebarVehicleName" style="font-size:12px;font-weight:600;color:#f1f5f9;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Selecionar veículo</p>
+          <p id="sidebarVehiclePlate" style="font-size:10px;color:#64748b;margin:0;font-family:monospace;"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navegação -->
+    <nav style="flex:1;padding:8px 0;overflow-y:auto;">
+      <p style="color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:8px 18px 4px;font-weight:600;">Principal</p>
+      <div class="nav-item active" id="nav-painel" onclick="showPage('painel')"><span>📊</span> Painel</div>
+      <div class="nav-item" id="nav-vehicles" onclick="showPage('vehicles')"><span>🚗</span> Meus Veículos</div>
+
+      <p style="color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:12px 18px 4px;font-weight:600;">Veículo Ativo</p>
+      <div class="nav-item" id="nav-fuel" onclick="showPage('fuel')"><span>⛽</span> Abastecimentos</div>
+      <div class="nav-item" id="nav-expenses" onclick="showPage('expenses')"><span>🔧</span> Despesas</div>
+      <div class="nav-item" id="nav-insurance" onclick="showPage('insurance')"><span>🛡️</span> Seguro</div>
+      <div class="nav-item" id="nav-predictive" onclick="showPage('predictive')"><span>🔮</span> Alertas de Manutenção</div>
+
+      <p style="color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:12px 18px 4px;font-weight:600;">Configurações</p>
+      <div class="nav-item" id="nav-motoristas" onclick="showPage('motoristas')"><span>👤</span> Motoristas</div>
+      <div class="nav-item" id="nav-oficinas" onclick="showPage('oficinas')"><span>🏭</span> Oficinas</div>
+    </nav>
+
+    <!-- Usuário / Logout -->
+    <div style="padding:12px;border-top:1px solid #334155;display:flex;align-items:center;gap:8px;">
+      <img id="userPhoto" src="" alt="" style="width:32px;height:32px;border-radius:50%;border:1px solid #334155;"/>
+      <div style="flex:1;min-width:0;">
+        <p id="userName" style="font-size:12px;font-weight:600;color:#f1f5f9;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+        <p style="font-size:10px;color:#64748b;margin:0;">Conectado</p>
+      </div>
+      <button onclick="doLogout()" title="Sair" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:18px;">⏻</button>
+    </div>
+  </aside>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main style="flex:1;display:flex;flex-direction:column;min-width:0;">
+    <!-- Header -->
+    <header style="height:56px;background:#1e293b;border-bottom:1px solid #334155;display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0;">
+      <div id="headerVehicle" style="display:flex;align-items:center;gap:10px;">
+        <span id="headerDot" style="width:8px;height:8px;background:#22c55e;border-radius:50%;"></span>
+        <div>
+          <p id="headerVehicleName" style="font-size:13px;font-weight:600;color:#f1f5f9;margin:0;">Selecione um veículo</p>
+          <p id="headerVehicleKm" style="font-size:11px;color:#64748b;margin:0;font-family:monospace;"></p>
+        </div>
+      </div>
+      <div style="margin-left:auto;font-size:12px;color:#475569;" id="headerDate"></div>
+    </header>
+
+    <!-- Área das páginas -->
+    <div style="flex:1;overflow-y:auto;padding:24px;" id="pageContent">
+      <div id="page-painel" class="page"></div>
+      <div id="page-vehicles"  class="page hidden"></div>
+      <div id="page-fuel"      class="page hidden"></div>
+      <div id="page-expenses"  class="page hidden"></div>
+      <div id="page-insurance" class="page hidden"></div>
+      <div id="page-predictive"class="page hidden"></div>
+      <div id="page-motoristas" class="page hidden"></div>
+      <div id="page-oficinas"    class="page hidden"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ============================================================
+  MODAL GLOBAL
+============================================================ -->
+<div id="modalOverlay" class="modal-overlay hidden" onclick="closeModalOnOverlay(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTitle" style="font-size:16px;font-weight:600;color:#f1f5f9;margin:0;"></h3>
+      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:20px;line-height:1;">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- ============================================================
+  JAVASCRIPT — LÓGICA COMPLETA
+============================================================ -->
+<script>
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+let currentUser  = null;
+let currentVehicle = null;  // Veículo selecionado
+let allVehicles  = [];
+let fuelLogs     = [];
+let expenseLogs  = [];
+let insuranceAcionamentos = [];
+let oficinas    = [];
+let motoristas  = [];
+
+// Listeners do Firestore (para desinscrever ao trocar de veículo)
+let unsubFuel, unsubExpenses, unsubAcionamentos, unsubOficinas, unsubMotoristas, unsubVehicles;
+
+// ============================================================
+// AUTENTICAÇÃO
+// ============================================================
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display  = 'flex';
+    document.getElementById('userPhoto').src = user.photoURL || '';
+    document.getElementById('userName').textContent = user.displayName || user.email;
+    document.getElementById('headerDate').textContent =
+      new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
+    startListeners();
+    showPage('painel');
+  } else {
+    currentUser = null;
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appScreen').style.display   = 'none';
+  }
+});
+
+function doLogin() {
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = 'Entrando...';
+  btn.disabled = true;
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  auth.signInWithPopup(provider).catch(err => {
+    document.getElementById('loginError').textContent = 'Erro: ' + (err.message || 'Tente novamente.');
+    document.getElementById('loginError').classList.remove('hidden');
+    btn.innerHTML = 'Entrar com Google';
+    btn.disabled = false;
+  });
+}
+
+function doLogout() {
+  if (!confirm('Deseja sair?')) return;
+  if (unsubVehicles)  unsubVehicles();
+  if (unsubFuel)      unsubFuel();
+  if (unsubExpenses)  unsubExpenses();
+  if (unsubAcionamentos)    unsubAcionamentos();
+  if (unsubOficinas)   unsubOficinas();
+  if (unsubMotoristas) unsubMotoristas();
+  auth.signOut();
+}
+
+// ============================================================
+// LISTENERS FIRESTORE
+// ============================================================
+function startListeners() {
+  // Listener de veículos
+  unsubVehicles = db.collection('users').doc(currentUser.uid)
+    .collection('vehicles').orderBy('createdAt','desc')
+    .onSnapshot(snap => {
+      allVehicles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Restaura veículo salvo
+      const savedId = localStorage.getItem('ag_vehicle_id');
+      if (!currentVehicle && savedId) {
+        const found = allVehicles.find(v => v.id === savedId);
+        if (found) selectVehicle(found);
+      }
+      renderCurrentPage();
+    });
+
+  // Listener de oficinas
+  unsubOficinas = db.collection('users').doc(currentUser.uid)
+    .collection('oficinas').orderBy('name')
+    .onSnapshot(snap => {
+      oficinas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    });
+
+  // Listener de motoristas
+  unsubMotoristas = db.collection('users').doc(currentUser.uid)
+    .collection('motoristas').orderBy('name')
+    .onSnapshot(snap => {
+      motoristas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderCurrentPage();
+    });
+}
+
+function subscribeToVehicleData(vehicleId) {
+  if (unsubFuel)     unsubFuel();
+  if (unsubExpenses) unsubExpenses();
+  if (unsubAcionamentos)   unsubAcionamentos();
+
+  const base = db.collection('users').doc(currentUser.uid)
+                 .collection('vehicles').doc(vehicleId);
+
+  unsubFuel = base.collection('fuel_logs').orderBy('date','desc')
+    .onSnapshot(snap => {
+      fuelLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderCurrentPage();
+    });
+
+  unsubExpenses = base.collection('expense_logs').orderBy('date','desc')
+    .onSnapshot(snap => {
+      expenseLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderCurrentPage();
+    });
+
+  unsubAcionamentos = base.collection('insurance_acionamentos').orderBy('date','desc')
+    .onSnapshot(snap => {
+      insuranceAcionamentos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderCurrentPage();
+    });
+}
+
+function selectVehicle(vehicle) {
+  currentVehicle = vehicle;
+  localStorage.setItem('ag_vehicle_id', vehicle.id);
+  subscribeToVehicleData(vehicle.id);
+  updateHeaderVehicle();
+}
+
+function updateHeaderVehicle() {
+  if (!currentVehicle) return;
+  document.getElementById('sidebarVehicleName').textContent =
+    currentVehicle.brand + ' ' + currentVehicle.model;
+  document.getElementById('sidebarVehiclePlate').textContent = currentVehicle.plate || '';
+  document.getElementById('headerVehicleName').textContent =
+    currentVehicle.brand + ' ' + currentVehicle.model + ' ' + (currentVehicle.year || '');
+  document.getElementById('headerVehicleKm').textContent =
+    'Placa: ' + (currentVehicle.plate||'') + ' · ' +
+    (currentVehicle.current_km||0).toLocaleString('pt-BR') + ' km';
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+let currentPage = 'painel';
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.remove('hidden');
+  const navEl = document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+  currentPage = page;
+  renderCurrentPage();
+}
+
+function renderCurrentPage() {
+  switch(currentPage) {
+    case 'painel':  renderPainel();  break;
+    case 'vehicles':   renderVehicles();   break;
+    case 'fuel':       renderFuel();       break;
+    case 'expenses':   renderExpenses();   break;
+    case 'insurance':  renderInsurance();  break;
+    case 'predictive': renderPredictive(); break;
+    case 'motoristas': renderMotoristas(); break;
+    case 'oficinas':   renderOficinas();   break;
+  }
+}
+
+// ============================================================
+// UTILITÁRIOS
+// ============================================================
+const fmtBRL = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0);
+const fmtNum = (v,d=0) => new Intl.NumberFormat('pt-BR',{maximumFractionDigits:d}).format(v||0);
+const fmtDate = s => { if(!s) return '-'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+const todayISO = () => new Date().toISOString().split('T')[0];
+
+// Converte um File para string base64 (data URL) — usado em fotos, CRLV, etc.
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result); // "data:image/jpeg;base64,..."
+    reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+    reader.readAsDataURL(file);
+  });
+}
+const calcDaysRemaining = dateStr => {
+  if (!dateStr) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const due = new Date(dateStr+'T00:00:00'); due.setHours(0,0,0,0);
+  return Math.ceil((due - now) / 86400000);
+};
+const dateSituação = (days, warn=30) =>
+  days === null ? 'unknown' : days < 0 ? 'danger' : days <= warn ? 'warn' : 'ok';
+
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? '#ef4444' : '#334155';
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 3000);
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(title, html) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.add('hidden');
+  document.getElementById('modalBody').innerHTML = '';
+}
+function closeModalOnOverlay(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+// ============================================================
+// PÁGINA: DASHBOARD
+// ============================================================
+let chartPie = null, chartBar = null;
+
+function renderPainel() {
+  const el = document.getElementById('page-painel');
+  if (!currentVehicle) {
+    el.innerHTML = `
+      <div class="card" style="text-align:center;padding:60px 20px;">
+        <div style="font-size:56px;margin-bottom:16px;">🚗</div>
+        <h2 style="color:#f1f5f9;margin:0 0 8px;">Bem-vindo ao AutoGestor Premium</h2>
+        <p style="color:#94a3b8;">Selecione ou cadastre um veículo para começar.</p>
+        <button class="btn btn-primary" onclick="showPage('vehicles')" style="margin-top:20px;">Ir para Meus Veículos</button>
+      </div>`;
+    return;
+  }
+
+  const fuelTotal    = fuelLogs.reduce((s,l) => s+(l.total_amount||0), 0);
+  const expenseTotal = expenseLogs.reduce((s,l) => s+(l.total_cost||0), 0);
+  const tco          = fuelTotal + expenseTotal;
+  const totalKm      = (currentVehicle.current_km||0) - (currentVehicle.initial_km||0);
+  const costPerKm    = totalKm > 0 ? tco/totalKm : 0;
+  const diyLogs      = expenseLogs.filter(l => l.is_diy);
+  const diySavings   = diyLogs.reduce((s,l) => s+(l.saved_labor_cost||0), 0);
+
+  const byCategory = {};
+  expenseLogs.forEach(l => {
+    byCategory[l.category] = (byCategory[l.category]||0) + (l.total_cost||0);
+  });
+  const prevTotal = byCategory['preventiva']||0;
+  const corrTotal = byCategory['corretiva']||0;
+  const prevRatio = (prevTotal+corrTotal) > 0 ? prevTotal/(prevTotal+corrTotal) : 0;
+
+  // Alertas preditivos
+  const alerts = generateAlerts();
+  const dangerAlerts = alerts.filter(a => a.status === 'danger');
+  const warnAlerts   = alerts.filter(a => a.status === 'warn');
+
+  const catLabels = { preventiva:'Preventiva', corretiva:'Corretiva', funilaria:'Funilaria', estetica:'Estética', acessorios:'Acessórios', taxas:'Taxas/Impostos' };
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h1 style="font-size:22px;font-weight:700;color:#f1f5f9;margin:0;">Painel</h1>
+        <p style="color:#64748b;font-size:13px;margin:2px 0 0;">${currentVehicle.brand} ${currentVehicle.model} · <span class="tech">${fmtNum(currentVehicle.current_km)} km</span></p>
+      </div>
+      <button class="btn btn-primary" onclick="generatePDF()">📄 Gerar Dossiê PDF</button>
+    </div>
+
+    ${dangerAlerts.length > 0 ? `
+    <div class="card" style="border-color:#ef4444;margin-bottom:16px;">
+      <p style="color:#f87171;font-weight:600;margin:0 0 10px;">🚨 Atenção Imediata</p>
+      ${dangerAlerts.map(a => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(51,65,85,.5);">
+          <span style="color:#e2e8f0;">${a.icon} ${a.title}</span>
+          <span style="color:#f87171;font-family:monospace;font-size:12px;">${a.type==='km' ? Math.abs(a.kmRemaining).toLocaleString('pt-BR')+' km atrasado' : Math.abs(a.daysRemaining)+' dias vencido'}</span>
+        </div>`).join('')}
+    </div>` : ''}
+
+    <div class="grid4" style="margin-bottom:20px;">
+      <div class="card">
+        <p style="color:#64748b;font-size:12px;margin:0 0 6px;">💰 Custo Total do Veículo</p>
+        <p class="tech" style="font-size:18px;font-weight:700;margin:0;">${fmtBRL(tco)}</p>
+      </div>
+      <div class="card">
+        <p style="color:#64748b;font-size:12px;margin:0 0 6px;">📏 Custo por KM</p>
+        <p style="font-size:18px;font-weight:700;margin:0;color:#f1f5f9;">${fmtBRL(costPerKm)}/km</p>
+      </div>
+      <div class="card">
+        <p style="color:#64748b;font-size:12px;margin:0 0 6px;">⛽ Combustível</p>
+        <p style="font-size:18px;font-weight:700;margin:0;color:#f1f5f9;">${fmtBRL(fuelTotal)}</p>
+      </div>
+      <div class="card">
+        <p style="color:#64748b;font-size:12px;margin:0 0 6px;">🔨 Economia Própria</p>
+        <p style="font-size:18px;font-weight:700;margin:0;color:#4ade80;">${fmtBRL(diySavings)}</p>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-bottom:20px;">
+      <div class="card">
+        <p style="color:#f1f5f9;font-weight:600;margin:0 0 14px;">Gastos por Categoria</p>
+        <div style="position:relative;height:200px;overflow:hidden;"><canvas id="chartPieCanvas"></canvas></div>
+      </div>
+      <div class="card">
+        <p style="color:#f1f5f9;font-weight:600;margin:0 0 14px;">Preventiva vs Corretiva</p>
+        <div style="position:relative;height:180px;overflow:hidden;"><canvas id="chartBarCanvas"></canvas></div>
+        <p style="color:#94a3b8;font-size:12px;text-align:center;margin-top:8px;">Preventiva: <span style="color:#4ade80;font-weight:600;">${(prevRatio*100).toFixed(1)}%</span> <span style="color:#475569;">(meta: &gt;60%)</span></p>
+      </div>
+    </div>
+
+    ${warnAlerts.length > 0 ? `
+    <div class="card" style="border-color:rgba(245,158,11,.4);margin-bottom:20px;">
+      <p style="color:#fbbf24;font-weight:600;margin:0 0 10px;">⚡ Próximas Manutenções / Vencimentos</p>
+      <div class="grid2">
+        ${warnAlerts.map(a => `
+          <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(245,158,11,.08);border-radius:8px;padding:8px 12px;">
+            <span style="color:#e2e8f0;font-size:13px;">${a.icon} ${a.title}</span>
+            <span style="color:#fbbf24;font-family:monospace;font-size:12px;">${a.type==='km' ? a.kmRemaining.toLocaleString('pt-BR')+' km' : a.daysRemaining+' dias'}</span>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:14px 20px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
+        <p style="color:#f1f5f9;font-weight:600;margin:0;">Últimas Despesas</p>
+        <span style="color:#64748b;font-size:12px;">${expenseLogs.length} registros</span>
+      </div>
+      ${expenseLogs.length === 0
+        ? '<p style="color:#64748b;text-align:center;padding:30px;">Nenhuma despesa registrada.</p>'
+        : `<div style="overflow-x:auto;"><table>
+          <thead><tr><th>Data</th><th>Serviço</th><th>Categoria</th><th>Total</th></tr></thead>
+          <tbody>
+            ${expenseLogs.slice(0,8).map(l => `
+              <tr>
+                <td style="color:#64748b;font-size:12px;">${fmtDate(l.date)}</td>
+                <td style="font-size:13px;">${l.service_type||'-'}</td>
+                <td><span class="badge badge-gray">${l.category||'-'}</span></td>
+                <td style="font-weight:600;">${fmtBRL(l.total_cost)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table></div>`}
+    </div>
+  `;
+
+  // Renderiza gráficos após HTML estar no DOM
+  setTimeout(() => {
+    renderChartPie(byCategory, catLabels);
+    renderChartBar(prevTotal, corrTotal);
+  }, 50);
+}
+
+function renderChartPie(byCategory, catLabels) {
+  const canvas = document.getElementById('chartPieCanvas');
+  if (!canvas) return;
+  if (chartPie) chartPie.destroy();
+  const entries = Object.entries(byCategory).filter(([,v])=>v>0);
+  if (entries.length === 0) {
+    canvas.parentElement.querySelector('p')?.remove();
+    canvas.insertAdjacentHTML('afterend','<p style="color:#64748b;text-align:center;padding:30px 0;font-size:13px;">Sem dados ainda</p>');
+    canvas.style.display='none'; return;
+  }
+  const COLORS = ['#ef4444','#3b82f6','#f59e0b','#22c55e','#a855f7','#f97316'];
+  chartPie = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: entries.map(([k]) => catLabels[k]||k),
+      datasets: [{ data: entries.map(([,v])=>v), backgroundColor: COLORS, borderWidth: 0 }]
+    },
+    options: {
+      plugins: { legend: { labels: { color:'#94a3b8', font:{size:11} } }, tooltip: { callbacks: { label: c => fmtBRL(c.raw) } } },
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function renderChartBar(prev, corr) {
+  const canvas = document.getElementById('chartBarCanvas');
+  if (!canvas) return;
+  if (chartBar) chartBar.destroy();
+  chartBar = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: ['Preventiva','Corretiva'],
+      datasets: [{ data:[prev,corr], backgroundColor:['#22c55e','#ef4444'], borderRadius:4, borderWidth:0 }]
+    },
+    options: {
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>fmtBRL(c.raw)}} },
+      scales: {
+        x: { ticks:{color:'#94a3b8',font:{size:11}}, grid:{display:false} },
+        y: { ticks:{color:'#94a3b8',font:{size:10},callback:v=>'R$'+(v/1000).toFixed(1)+'k'}, grid:{color:'#334155'} }
+      },
+      maintainAspectRatio: false
+    }
+  });
+}
+
+// ============================================================
+// PÁGINA: VEÍCULOS
+// ============================================================
+function renderVehicles() {
+  const el = document.getElementById('page-vehicles');
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h1 style="font-size:22px;font-weight:700;color:#f1f5f9;margin:0;">Meus Veículos</h1>
+        <p style="color:#64748b;font-size:13px;margin:2px 0 0;">${allVehicles.length} veículo${allVehicles.length!==1?'s':''} cadastrado${allVehicles.length!==1?'s':''}</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="openCRLVImport()" style="display:flex;align-items:center;gap:6px;border-color:#3b82f6;color:#60a5fa;">
+          📄 Cadastrar pelo CRLV
+        </button>
+        <button class="btn btn-primary" onclick="openVehicleForm()">+ Novo Veículo</button>
+      </div>
+    </div>
+    ${allVehicles.length === 0
+      ? `<div class="card" style="text-align:center;padding:50px;">
+          <div style="font-size:48px;margin-bottom:12px;">🚗</div>
+          <p style="color:#f1f5f9;font-weight:600;margin-bottom:8px;">Nenhum veículo cadastrado</p>
+          <p style="color:#64748b;font-size:13px;margin-bottom:20px;">Adicione seu primeiro veículo para começar.</p>
+          <button class="btn btn-primary" onclick="openVehicleForm()">Cadastrar Primeiro Veículo</button>
+        </div>`
+      : `<div class="grid2 grid3">
+          ${allVehicles.map(v => vehicleCard(v)).join('')}
+        </div>`}
+  `;
+}
+
+function vehicleCard(v) {
+  const isSelected = currentVehicle?.id === v.id;
+  const km = v.current_km || 0;
+  return `
+    <div style="background:#1e293b;border:2px solid ${isSelected?'#ef4444':'#334155'};${isSelected?'box-shadow:0 0 20px rgba(239,68,68,.2);':''}border-radius:12px;overflow:hidden;display:flex;flex-direction:column;">
+
+      <!-- FOTO ou ícone -->
+      ${v.photo_url
+        ? `<img src="${v.photo_url}" style="width:100%;height:150px;object-fit:cover;display:block;pointer-events:none;"/>`
+        : `<div style="width:100%;height:70px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:36px;pointer-events:none;">🚗</div>`
+      }
+
+      <!-- DADOS -->
+      <div style="padding:14px;flex:1;display:flex;flex-direction:column;gap:0;">
+
+        <!-- Nome e ano -->
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${isSelected ? '<div style="width:7px;height:7px;background:#22c55e;border-radius:50%;flex-shrink:0;"></div>' : ''}
+            <p style="font-weight:700;color:#f1f5f9;font-size:15px;margin:0;">${v.brand} ${v.model}</p>
+          </div>
+          <p style="color:#64748b;font-size:12px;margin:2px 0 0;">${v.year||''}/${v.year_model||v.year||''} · ${v.color||'Cor não informada'}</p>
+        </div>
+
+        <!-- Tabela de dados -->
+        <div style="border-top:1px solid #334155;padding-top:10px;margin-bottom:12px;flex:1;">
+          <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;">
+            <span style="color:#64748b;">Placa</span>
+            <span style="font-family:monospace;color:#f59e0b;font-weight:700;">${v.plate||'-'}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;">
+            <span style="color:#64748b;">Hodômetro</span>
+            <span style="font-family:monospace;color:${km>0?'#f59e0b':'#ef4444'};">${km.toLocaleString('pt-BR')} km${km===0?' ⚠️':''}</span>
+          </div>
+          ${v.doors ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span style="color:#64748b;">Portas</span><span style="color:#94a3b8;">${v.doors}p</span></div>` : ''}
+          ${v.power ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span style="color:#64748b;">Potência</span><span style="color:#94a3b8;">${v.power}cv / ${v.displacement||'?'}cc</span></div>` : ''}
+          ${v.renavam ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span style="color:#64748b;">RENAVAM</span><span style="font-family:monospace;color:#64748b;font-size:11px;">${v.renavam}</span></div>` : ''}
+          ${v.chassis ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span style="color:#64748b;">Chassi</span><span style="font-family:monospace;color:#64748b;font-size:10px;">${v.chassis}</span></div>` : ''}
+          ${v.insurance_current ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span style="color:#64748b;">Seguro</span><span style="background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600;">Ativo ✓</span></div>` : ''}
+        </div>
+
+        <!-- Botão CRLV -->
+        ${v.crlv_url
+          ? `<a href="${v.crlv_url}" target="_blank" download="${v.crlv_name||'CRLV.pdf'}"
+               style="display:flex;align-items:center;justify-content:center;gap:6px;
+                      background:rgba(29,78,216,.15);border:1px solid rgba(59,130,246,.3);
+                      border-radius:8px;padding:8px;color:#60a5fa;font-size:13px;
+                      font-weight:600;text-decoration:none;margin-bottom:10px;cursor:pointer;">
+              📄 Abrir CRLV Digital
+            </a>`
+          : `<p style="color:#475569;font-size:11px;text-align:center;margin:0 0 10px;">
+               📄 Sem CRLV — clique em ✏️ para adicionar
+             </p>`
+        }
+
+        <!-- BOTÕES DE AÇÃO -->
+        <div style="display:flex;gap:8px;margin-top:auto;">
+          ${!isSelected
+            ? `<button
+                 onclick="selectVehicleById('${v.id}')"
+                 style="flex:1;padding:9px;font-size:13px;font-weight:600;
+                        background:#ef4444;color:#fff;border:none;border-radius:8px;cursor:pointer;">
+                 Selecionar
+               </button>`
+            : `<div style="flex:1;text-align:center;color:#4ade80;font-size:13px;font-weight:600;padding:9px;
+                           background:rgba(34,197,94,.1);border-radius:8px;">
+                 ✓ Veículo Ativo
+               </div>`
+          }
+          <button
+            onclick="openVehicleForm('${v.id}')"
+            style="padding:9px 15px;font-size:16px;background:#334155;
+                   border:1px solid #475569;border-radius:8px;color:#f1f5f9;cursor:pointer;">
+            ✏️
+          </button>
+          <button
+            onclick="deleteVehicle('${v.id}')"
+            style="padding:9px 15px;font-size:16px;background:#334155;
+                   border:1px solid #475569;border-radius:8px;color:#f87171;cursor:pointer;">
+            🗑️
+          </button>
+        </div>
+
+      </div>
+    </div>`;
+}
+
+
+// ============================================================
+// MÓDULO: MOTORISTAS
+// ============================================================
+
+function renderMotoristas() {
+  const el = document.getElementById('page-motoristas');
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h1 style="font-size:22px;font-weight:700;color:#f1f5f9;margin:0;">Motoristas</h1>
+        <p style="color:#64748b;font-size:13px;margin:2px 0 0;">${motoristas.length} cadastrado${motoristas.length!==1?'s':''}</p>
+      </div>
+      <button class="btn btn-primary" onclick="openDriverForm()">+ Novo Motorista</button>
+    </div>
+
+    ${motoristas.length === 0
+      ? `<div class="card" style="text-align:center;padding:50px;">
+          <div style="font-size:56px;margin-bottom:12px;">👤</div>
+          <p style="color:#f1f5f9;font-weight:600;margin:0 0 8px;">Nenhum motorista cadastrado</p>
+          <p style="color:#64748b;font-size:13px;margin:0 0 20px;">Cadastre os motoristas e suas habilitações.</p>
+          <button class="btn btn-primary" onclick="openDriverForm()">Cadastrar Motorista</button>
+        </div>`
+      : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+          ${motoristas.map(d => driverCard(d)).join('')}
+        </div>`
+    }`;
+}
+
+function driverCard(d) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const venc = d.cnh_expiry ? new Date(d.cnh_expiry+'T00:00:00') : null;
+  const diasVenc = venc ? Math.ceil((venc-hoje)/86400000) : null;
+  const statusCor = diasVenc === null ? '#64748b' : diasVenc < 0 ? '#ef4444' : diasVenc <= 30 ? '#f59e0b' : '#22c55e';
+  const statusTxt = diasVenc === null ? 'Sem data' : diasVenc < 0 ? `Vencida há ${Math.abs(diasVenc)} dias` : diasVenc <= 30 ? `Vence em ${diasVenc} dias` : `Válida — ${diasVenc} dias`;
+
+  return `
+    <div class="card" style="padding:0;overflow:hidden;border-color:#334155;">
+      ${d.photo_url
+        ? `<img src="${d.photo_url}" style="width:100%;height:140px;object-fit:cover;object-position:top;display:block;"/>`
+        : `<div style="width:100%;height:80px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:40px;">👤</div>`
+      }
+      <div style="padding:14px;">
+        <div style="margin-bottom:12px;">
+          <p style="font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 2px;">${d.name}</p>
+          ${d.nickname ? `<p style="color:#64748b;font-size:12px;margin:0;">"${d.nickname}"</p>` : ''}
+        </div>
+
+        <div style="border-top:1px solid #334155;padding-top:10px;margin-bottom:12px;">
+          ${d.cnh_number ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span style="color:#64748b;">Nº CNH</span><span style="font-family:monospace;color:#f59e0b;font-weight:600;">${d.cnh_number}</span></div>` : ''}
+          ${d.cnh_category ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span style="color:#64748b;">Categoria</span><span style="color:#60a5fa;font-weight:700;font-size:14px;">${d.cnh_category}</span></div>` : ''}
+          ${d.cnh_expiry ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px;">
+            <span style="color:#64748b;">Vencimento CNH</span>
+            <span style="color:${statusCor};font-weight:600;">${fmtDate(d.cnh_expiry)}</span>
+          </div>` : ''}
+          ${diasVenc !== null ? `<div style="background:${statusCor}22;border:1px solid ${statusCor}44;border-radius:6px;padding:5px 10px;margin-top:6px;text-align:center;">
+            <span style="color:${statusCor};font-size:12px;font-weight:600;">${diasVenc<0?'🔴':diasVenc<=30?'⚡':'✅'} ${statusTxt}</span>
+          </div>` : ''}
+          ${d.cpf ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;margin-top:4px;"><span style="color:#64748b;">CPF</span><span style="font-family:monospace;color:#94a3b8;font-size:11px;">${d.cpf}</span></div>` : ''}
+          ${d.phone ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px;">
+            <span style="color:#64748b;">Telefone</span>
+            <a href="tel:${d.phone.replace(/\D/g,'')}" style="color:#60a5fa;text-decoration:none;">${d.phone}</a>
+          </div>` : ''}
+        </div>
+
+        ${d.cnh_url
+          ? `<a href="${d.cnh_url}" target="_blank" download="${d.cnh_name||'CNH.pdf'}" style="display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(29,78,216,.15);border:1px solid rgba(59,130,246,.3);border-radius:8px;padding:8px;color:#60a5fa;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:10px;">
+              🪪 Abrir CNH Digital
+            </a>`
+          : `<p style="color:#475569;font-size:11px;text-align:center;margin:0 0 10px;">🪪 Sem CNH — clique em ✏️ para adicionar</p>`
+        }
+
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;font-size:12px;padding:7px;" onclick="openDriverForm('${d.id}')">✏️ Editar</button>
+          <button class="btn btn-ghost" style="padding:7px 11px;font-size:13px;color:#f87171;" onclick="deleteDriver('${d.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function openDriverForm(driverId) {
+  const d = driverId ? motoristas.find(x => x.id === driverId) : null;
+  openModal(d ? 'Editar Motorista' : 'Novo Motorista', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div style="grid-column:1/-1;" class="form-group">
+        <label>Nome Completo *</label>
+        <input id="df_name" value="${d?.name||''}" placeholder="Ex: Rafael Medeiros"/>
+      </div>
+      <div class="form-group">
+        <label>Apelido / Como é chamado</label>
+        <input id="df_nickname" value="${d?.nickname||''}" placeholder="Ex: Rafa"/>
+      </div>
+      <div class="form-group">
+        <label>CPF</label>
+        <input id="df_cpf" value="${d?.cpf||''}" placeholder="000.000.000-00" style="font-family:monospace;"/>
+      </div>
+      <div class="form-group">
+        <label>Telefone</label>
+        <input id="df_phone" value="${d?.phone||''}" placeholder="(61) 9 9999-9999" style="font-family:monospace;"/>
+      </div>
+      <div class="form-group">
+        <label>Data de Nascimento</label>
+        <input id="df_birthdate" type="date" value="${d?.birthdate||''}"/>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #334155;margin:14px 0;padding-top:14px;">
+      <p style="color:#94a3b8;font-weight:600;font-size:13px;margin:0 0 12px;">🪪 Carteira de Habilitação (CNH)</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="form-group">
+          <label>Número do Registro CNH *</label>
+          <input id="df_cnh_number" value="${d?.cnh_number||''}" placeholder="Ex: 01234567890" style="font-family:monospace;" maxlength="11"/>
+        </div>
+        <div class="form-group">
+          <label>Categoria</label>
+          <select id="df_cnh_category">
+            <option value="" ${!d?.cnh_category?'selected':''}>— Selecione —</option>
+            <option value="A"  ${d?.cnh_category==='A'?'selected':''}>A — Moto</option>
+            <option value="B"  ${d?.cnh_category==='B'?'selected':''}>B — Carro</option>
+            <option value="AB" ${d?.cnh_category==='AB'?'selected':''}>AB — Moto + Carro</option>
+            <option value="C"  ${d?.cnh_category==='C'?'selected':''}>C — Caminhão leve</option>
+            <option value="D"  ${d?.cnh_category==='D'?'selected':''}>D — Ônibus</option>
+            <option value="E"  ${d?.cnh_category==='E'?'selected':''}>E — Carreta</option>
+            <option value="ACC" ${d?.cnh_category==='ACC'?'selected':''}>ACC — Aprendiz</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Data de Emissão</label>
+          <input id="df_cnh_issue" type="date" value="${d?.cnh_issue||''}"/>
+        </div>
+        <div class="form-group">
+          <label>Data de Vencimento *</label>
+          <input id="df_cnh_expiry" type="date" value="${d?.cnh_expiry||''}"/>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>Local de Emissão (cidade / UF)</label>
+          <input id="df_cnh_city" value="${d?.cnh_city||''}" placeholder="Ex: Brasília / DF"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>📷 Foto do Motorista</label>
+      <div id="df_photo_preview" style="margin-bottom:8px;">
+        ${d?.photo_url ? `<img src="${d.photo_url}" style="width:100%;max-height:140px;object-fit:cover;object-position:top;border-radius:8px;border:1px solid #334155;"/>` : ''}
+      </div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed #334155;border-radius:8px;padding:12px;cursor:pointer;color:#94a3b8;" onmouseover="this.style.borderColor='#3b82f6'" onmouseout="this.style.borderColor='#334155'">
+        <span style="font-size:20px;">📷</span>
+        <div><p id="df_photo_name" style="margin:0;font-size:13px;font-weight:500;">${d?.photo_url?'Trocar foto':'Adicionar foto'}</p><p style="margin:0;font-size:11px;">Câmera ou galeria</p></div>
+        <input type="file" id="df_photo_file" accept="image/*" capture="user" style="display:none;" onchange="previewDriverPhoto(this)"/>
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label>🪪 CNH Digital (PDF) — para apresentar na blitz</label>
+      <div id="df_cnh_preview" style="margin-bottom:8px;">
+        ${d?.cnh_url ? `<div style="background:#0f172a;border:1px solid #22c55e;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:24px;">🪪</span>
+          <div style="flex:1;"><p style="margin:0;font-size:13px;font-weight:600;color:#4ade80;">CNH armazenada</p></div>
+          <a href="${d.cnh_url}" target="_blank" class="btn btn-secondary" style="font-size:12px;padding:5px 10px;text-decoration:none;">Ver</a>
+        </div>` : ''}
+      </div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed #334155;border-radius:8px;padding:12px;cursor:pointer;color:#94a3b8;" onmouseover="this.style.borderColor='#3b82f6'" onmouseout="this.style.borderColor='#334155'">
+        <span style="font-size:20px;">🪪</span>
+        <div><p id="df_cnh_name" style="margin:0;font-size:13px;font-weight:500;">${d?.cnh_url?'Substituir CNH Digital':'Selecionar CNH Digital (PDF)'}</p><p style="margin:0;font-size:11px;">PDF da CNH Digital — SENATRAN/DETRAN</p></div>
+        <input type="file" id="df_cnh_file" accept=".pdf,image/*" style="display:none;" onchange="previewDriverCNH(this)"/>
+      </label>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveDriver('${driverId||''}')">Salvar Motorista</button>
+    </div>
+  `);
+}
+
+function previewDriverPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5*1024*1024) { showToast('Foto muito grande. Máx. 5MB.', true); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const p = document.getElementById('df_photo_preview');
+    if (p) p.innerHTML = `<img src="${e.target.result}" style="width:100%;max-height:140px;object-fit:cover;object-position:top;border-radius:8px;border:1px solid #334155;margin-bottom:4px;"/>`;
+    const n = document.getElementById('df_photo_name');
+    if (n) n.textContent = '✅ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewDriverCNH(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10*1024*1024) { showToast('Arquivo muito grande. Máx. 10MB.', true); return; }
+  const nameEl = document.getElementById('df_cnh_name');
+  if (nameEl) nameEl.textContent = '✅ ' + file.name;
+  const preview = document.getElementById('df_cnh_preview');
+  if (preview) preview.innerHTML = `
+    <div style="background:#0f172a;border:1px solid #22c55e;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px;">🪪</span>
+      <div><p style="margin:0;font-size:13px;font-weight:600;color:#4ade80;">${file.name}</p>
+      <p style="margin:0;font-size:11px;color:#64748b;">${(file.size/1024).toFixed(0)} KB — será salvo ao clicar em Salvar</p></div>
+    </div>`;
+}
+
+async function saveDriver(driverId) {
+  const name = document.getElementById('df_name').value.trim();
+  if (!name) { showToast('Informe o nome do motorista.', true); return; }
+
+  const data = {
+    name,
+    nickname:     document.getElementById('df_nickname').value.trim(),
+    cpf:          document.getElementById('df_cpf').value.trim(),
+    phone:        document.getElementById('df_phone').value.trim(),
+    birthdate:    document.getElementById('df_birthdate').value,
+    cnh_number:   document.getElementById('df_cnh_number').value.trim(),
+    cnh_category: document.getElementById('df_cnh_category').value,
+    cnh_issue:    document.getElementById('df_cnh_issue').value,
+    cnh_expiry:   document.getElementById('df_cnh_expiry').value,
+    cnh_city:     document.getElementById('df_cnh_city').value.trim(),
+  };
+
+  // Foto do motorista
+  const photoInput = document.getElementById('df_photo_file');
+  if (photoInput && photoInput.files[0]) {
+    try { data.photo_url = await fileToBase64(photoInput.files[0]); }
+    catch(e) { showToast('Erro ao processar foto.', true); }
+  }
+
+  // CNH Digital (PDF ou imagem)
+  const cnhInput = document.getElementById('df_cnh_file');
+  if (cnhInput && cnhInput.files[0]) {
+    try {
+      data.cnh_url  = await fileToBase64(cnhInput.files[0]);
+      data.cnh_name = cnhInput.files[0].name;
+    }
+    catch(e) { showToast('Erro ao processar CNH.', true); }
+  }
+
+  const ref = db.collection('users').doc(currentUser.uid).collection('motoristas');
+  if (driverId) {
+    await ref.doc(driverId).update({...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp()});
+  } else {
+    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    await ref.add(data);
+  }
+  closeModal();
+  showToast('Motorista salvo!');
+}
+
+async function deleteDriver(driverId) {
+  if (!confirm('Excluir este motorista? Esta ação não pode ser desfeita.')) return;
+  await db.collection('users').doc(currentUser.uid).collection('motoristas').doc(driverId).delete();
+  showToast('Motorista excluído.');
+}
+
+// ============================================================
+// IMPORTAÇÃO PELA CNH DIGITAL
+// ============================================================
+
+function openCNHImport() {
+  openModal('🪪 Cadastrar Motorista pela CNH', `
+    <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.3);border-radius:10px;padding:14px;margin-bottom:16px;">
+      <p style="color:#60a5fa;font-weight:600;margin:0 0 6px;">✨ Como funciona</p>
+      <p style="color:#94a3b8;font-size:13px;margin:0;line-height:1.6;">
+        Selecione o PDF da CNH Digital (SENATRAN/DETRAN).<br>
+        O sistema lê o documento e preenche automaticamente:<br>
+        nome, CPF, nº registro, categoria, validade e mais.
+      </p>
+    </div>
+    <div class="form-group">
+      <label>Selecione a CNH em PDF *</label>
+      <label style="display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed #334155;border-radius:8px;padding:20px;cursor:pointer;color:#94a3b8;" onmouseover="this.style.borderColor='#3b82f6'" onmouseout="this.style.borderColor='#334155'">
+        <span style="font-size:32px;">🪪</span>
+        <div>
+          <p id="cnhImportName" style="margin:0;font-size:14px;font-weight:600;">Clique para selecionar a CNH Digital</p>
+          <p style="margin:0;font-size:11px;">PDF da CNH Digital — SENATRAN</p>
+        </div>
+        <input type="file" id="cnhImportFile" accept=".pdf,application/pdf" style="display:none;" onchange="handleCNHFileSelect(this)"/>
+      </label>
+    </div>
+    <div id="cnhImportStatus" style="display:none;"></div>
+    <div id="cnhImportResult" style="display:none;"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;opacity:.5;" id="cnhImportBtn" disabled onclick="processCNHImport()">
+        ✨ Cadastrar com estes dados
+      </button>
+    </div>
+  `);
+}
+
+async function handleCNHFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  document.getElementById('cnhImportName').textContent = '🪪 ' + file.name;
+  document.getElementById('cnhImportStatus').style.display = 'block';
+  document.getElementById('cnhImportStatus').innerHTML = `
+    <div style="text-align:center;padding:16px;">
+      <div style="font-size:32px;margin-bottom:8px;">📖</div>
+      <p style="color:#60a5fa;font-weight:600;margin:0;">Lendo a CNH...</p>
+      <p style="color:#64748b;font-size:13px;margin:4px 0 0;">Extraindo dados do documento</p>
+    </div>`;
+  document.getElementById('cnhImportResult').style.display = 'none';
+
+  try {
+    const text = await extractTextPDFjs(file);
+    const dados = parseCNHText(text);
+    document.getElementById('cnhImportStatus').style.display = 'none';
+    showCNHExtractedData(dados, file);
+  } catch(e) {
+    document.getElementById('cnhImportStatus').style.display = 'none';
+    document.getElementById('cnhImportResult').innerHTML = `
+      <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:14px;">
+        <p style="color:#fbbf24;font-weight:600;margin:0 0 6px;">⚠️ Não foi possível ler a CNH automaticamente</p>
+        <p style="color:#94a3b8;font-size:13px;margin:0;">Cadastre manualmente clicando em "+ Novo Motorista".</p>
+        <p style="color:#64748b;font-size:11px;margin:4px 0 0;">${e.message}</p>
+      </div>`;
+    document.getElementById('cnhImportResult').style.display = 'block';
+  }
+}
+
+// Analisa o texto extraído da CNH Digital brasileira
+function parseCNHText(text) {
+  const dados = {};
+  const up = text.toUpperCase().replace(/\r?\n/g, ' ').replace(/\s+/g, ' ');
+
+  // ── NOME COMPLETO ──
+  // Na CNH aparece antes da data de nascimento
+  const nomeM = up.match(/(?:NOME E SOBRENOME|NAME AND SURNAME)[^A-Z]*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÀÈÌÒÙÇ ]{5,60})(?=\s+\d{2}\/\d{2}\/\d{4})/);
+  if (nomeM) {
+    dados.name = nomeM[1].trim().split(' ').map(w =>
+      w.charAt(0) + w.slice(1).toLowerCase()
+    ).join(' ');
+  } else {
+    // Fallback: pega nome após "CARTEIRA NACIONAL"
+    const nomeM2 = up.match(/HABILITAÇÃO\s+([A-ZÁÉÍÓÚÇ ]{8,60})\s+\d{2}\/\d{2}\/\d{4}/);
+    if (nomeM2) dados.name = nomeM2[1].trim().split(' ').map(w => w.charAt(0)+w.slice(1).toLowerCase()).join(' ');
+  }
+
+  // ── DATA DE NASCIMENTO ──
+  const nascM = up.match(/DATA.*?NASCIMENTO[^\d]*(\d{2}\/\d{2}\/\d{4})/);
+  if (nascM) dados.birthdate = nascM[1].split('/').reverse().join('-'); // DD/MM/YYYY → YYYY-MM-DD
+
+  // ── DATA DE EMISSÃO ──
+  const emissaoM = up.match(/DATA.*?EMISS[ÃA]O[^\d]*(\d{2}\/\d{2}\/\d{4})/);
+  if (emissaoM) dados.cnh_issue = emissaoM[1].split('/').reverse().join('-');
+
+  // ── VALIDADE ──
+  // Na CNH: "VALIDADE" seguido da data
+  const validM = up.match(/VALIDADE[^\d]*(\d{2}\/\d{2}\/\d{4})/);
+  if (validM) dados.cnh_expiry = validM[1].split('/').reverse().join('-');
+
+  // ── NÚMERO DE REGISTRO (Nº REGISTRO) ──
+  // Formato: 5 dígitos ou 11 dígitos
+  const regM = up.match(/N[ÚU]MERO.*?REGISTRO[^\d]*(\d{5,11})/);
+  if (regM) dados.cnh_number = regM[1];
+  else {
+    // Fallback: sequência de 11 dígitos que não seja CPF
+    const nums = [...up.matchAll(/\b(\d{11})\b/g)].map(m => m[1]);
+    // Pega o que não for CPF (CPF tem máscara com pontos no texto original)
+    if (nums.length > 0) dados.cnh_number = nums[nums.length - 1];
+  }
+
+  // ── CPF ──
+  const cpfM = text.match(/(\d{3}[.,]\d{3}[.,]\d{3}[-.,]\d{2})/);
+  if (cpfM) dados.cpf = cpfM[1];
+
+  // ── CATEGORIA ──
+  // Categorias válidas: ACC, A, B, AB, C, D, E, AT, B1
+  const catM = up.match(/1[ªA].*?HABILITA[ÇC][ÃA]O[^A-Z]*([A-Z]{1,3})\b/);
+  if (catM && ['A','B','AB','C','D','E','ACC','AT','B1'].includes(catM[1])) {
+    dados.cnh_category = catM[1];
+  } else {
+    // Fallback: busca categoria nas letras após "CAT HAB"
+    const catM2 = up.match(/CAT\.?\s*HAB\.?[^A-Z]*([A-Z]{1,3})\b/);
+    if (catM2) dados.cnh_category = catM2[1];
+  }
+
+  // ── LOCAL DE EMISSÃO ──
+  const localM = up.match(/LOCAL[^A-Z]*([A-ZÁÉÍÓÚÇ ]{3,30}(?:DF|SP|RJ|MG|RS|BA|PR|SC|GO|PE|CE|MA|AM|PA|MT|MS|ES|RN|PB|AL|SE|RO|AC|AP|RR|TO|PI))\b/);
+  if (localM) dados.cnh_city = localM[1].trim().split(' ').map(w => w.charAt(0)+w.slice(1).toLowerCase()).join(' ');
+
+  return dados;
+}
+
+let cnhExtractedData = {};
+let cnhFile = null;
+
+function showCNHExtractedData(dados, file) {
+  cnhExtractedData = dados;
+  cnhFile = file;
+
+  const campos = [
+    { key:'name',         label:'Nome Completo'     },
+    { key:'birthdate',    label:'Data de Nascimento' },
+    { key:'cpf',          label:'CPF'               },
+    { key:'cnh_number',   label:'Nº de Registro'    },
+    { key:'cnh_category', label:'Categoria'         },
+    { key:'cnh_issue',    label:'Data de Emissão'   },
+    { key:'cnh_expiry',   label:'Validade'          },
+    { key:'cnh_city',     label:'Local de Emissão'  },
+  ];
+
+  const formatVal = (key, val) => {
+    if (!val) return null;
+    if (key.includes('date') || key.includes('issue') || key.includes('expiry')) {
+      const [y,m,d] = val.split('-');
+      return `${d}/${m}/${y}`;
+    }
+    return val;
+  };
+
+  const rows = campos.map(c => {
+    const val = formatVal(c.key, dados[c.key]);
+    return `<tr>
+      <td style="color:#64748b;font-size:13px;padding:7px 10px;">${c.label}</td>
+      <td style="font-weight:${val?'600':'400'};color:${val?'#f1f5f9':'#475569'};padding:7px 10px;">
+        ${val || '<span style="font-size:11px;">Não identificado</span>'}
+      </td>
+    </tr>`;
+  }).join('');
+
+  const temDados = Object.keys(dados).length > 0;
+
+  document.getElementById('cnhImportResult').innerHTML = `
+    <div style="margin-bottom:14px;">
+      <p style="color:${temDados?'#4ade80':'#fbbf24'};font-weight:600;margin:0 0 10px;">
+        ${temDados ? '✅ Dados identificados — confirme antes de cadastrar:' : '⚠️ Poucos dados identificados.'}
+      </p>
+      <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;">${rows}</table>
+      </div>
+      <p style="color:#64748b;font-size:12px;margin:8px 0 0;">💡 A CNH também será salva para apresentação em blitz.</p>
+    </div>`;
+  document.getElementById('cnhImportResult').style.display = 'block';
+
+  const btn = document.getElementById('cnhImportBtn');
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+}
+
+async function processCNHImport() {
+  const btn = document.getElementById('cnhImportBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+  try {
+    const data = {
+      name:         cnhExtractedData.name         || 'Verificar',
+      cpf:          cnhExtractedData.cpf           || '',
+      birthdate:    cnhExtractedData.birthdate     || '',
+      cnh_number:   cnhExtractedData.cnh_number    || '',
+      cnh_category: cnhExtractedData.cnh_category  || '',
+      cnh_issue:    cnhExtractedData.cnh_issue     || '',
+      cnh_expiry:   cnhExtractedData.cnh_expiry    || '',
+      cnh_city:     cnhExtractedData.cnh_city      || '',
+      createdAt:    firebase.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Salva a CNH em base64
+    if (cnhFile) {
+      try { data.cnh_url = await fileToBase64(cnhFile); data.cnh_name = cnhFile.name; } catch(e) {}
+    }
+
+    const ref = db.collection('users').doc(currentUser.uid).collection('motoristas');
+    const doc = await ref.add(data);
+    closeModal();
+    showToast('✅ Motorista cadastrado pela CNH! Verifique e complete os dados.');
+    setTimeout(() => openDriverForm(doc.id), 800);
+  } catch(e) {
+    showToast('Erro ao cadastrar. Tente novamente.', true);
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Cadastrar com estes dados'; }
+  }
+}
+
+function renderOficinas() {
+  const el = document.getElementById('page-oficinas');
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h1 style="font-size:22px;font-weight:700;color:#f1f5f9;margin:0;">Oficinas</h1>
+        <p style="color:#64748b;font-size:13px;margin:2px 0 0;">${oficinas.length} cadastrada${oficinas.length!==1?'s':''}</p>
+      </div>
+      <button class="btn btn-primary" onclick="openOficinaForm()">+ Nova Oficina</button>
+    </div>
+    ${oficinas.length===0
+      ? `<div class="card" style="text-align:center;padding:50px;">
+          <p style="font-size:48px;margin-bottom:12px;">🏭</p>
+          <p style="color:#f1f5f9;font-weight:600;margin-bottom:8px;">Nenhuma oficina cadastrada</p>
+          <p style="color:#64748b;font-size:13px;margin-bottom:20px;">Cadastre oficinas para vinculá-las às manutenções.</p>
+          <button class="btn btn-primary" onclick="openOficinaForm()">Cadastrar Oficina</button>
+        </div>`
+      : `<div class="grid2 grid3">
+          ${oficinas.map(w=>`
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px;">
+                <div>
+                  <p style="font-weight:600;color:#f1f5f9;margin:0;">${w.name}</p>
+                  ${w.specialty?`<p style="color:#64748b;font-size:12px;margin:2px 0 0;">${w.specialty}</p>`:''}
+                </div>
+                <button onclick="deleteOficina('${w.id}')" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:16px;">🗑️</button>
+              </div>
+              ${w.address?`<p style="color:#94a3b8;font-size:13px;margin:4px 0;">📍 ${w.address}</p>`:''}
+              ${w.phone?`<a href="tel:${w.phone.replace(/\D/g,'')}" style="color:#60a5fa;font-size:13px;display:block;margin:4px 0;text-decoration:none;">📞 ${w.phone}</a>`:''}
+              ${w.notes?`<p style="color:#64748b;font-size:12px;margin:8px 0 0;padding-top:8px;border-top:1px solid #334155;">${w.notes}</p>`:''}
+            </div>`).join('')}
+        </div>`}`;
+}
+
+function openOficinaForm() {
+  openModal('Nova Oficina', `
+    <div class="form-group"><label>Nome *</label><input id="wf_name" placeholder="Ex: Auto Center Silva"/></div>
+    <div class="form-group"><label>Especialidade</label><input id="wf_specialty" placeholder="Mecânica geral, Funilaria..."/></div>
+    <div class="form-group"><label>Endereço</label><input id="wf_address" placeholder="Rua, número, bairro"/></div>
+    <div class="form-group"><label>Telefone</label><input id="wf_phone" placeholder="(11) 9 9999-9999" style="font-family:monospace;"/></div>
+    <div class="form-group"><label>Observações</label><textarea id="wf_notes" rows="2" style="resize:none;"></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveOficina()">Salvar</button>
+    </div>`);
+}
+
+async function saveOficina() {
+  const name=document.getElementById('wf_name').value.trim();
+  if (!name) { showToast('Digite o nome da oficina.',true); return; }
+  await db.collection('users').doc(currentUser.uid).collection('oficinas').add({
+    name, specialty:document.getElementById('wf_specialty').value.trim(),
+    address:document.getElementById('wf_address').value.trim(),
+    phone:document.getElementById('wf_phone').value.trim(),
+    notes:document.getElementById('wf_notes').value.trim(),
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+  closeModal(); showToast('Oficina salva!');
+}
+
+async function deleteOficina(id) {
+  if (!confirm('Excluir esta oficina?')) return;
+  await db.collection('users').doc(currentUser.uid).collection('oficinas').doc(id).delete();
+  showToast('Oficina excluída.');
+}
+
+// ============================================================
+// GERADOR DE PDF (Dossiê Patrimonial)
+// ============================================================
+async function generatePDF() {
+  if (!currentVehicle) { showToast('Selecione um veículo primeiro.', true); return; }
+
+  // Verifica se jsPDF carregou
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    showToast('Aguarde o carregamento da biblioteca PDF e tente novamente.', true);
+    return;
+  }
+
+  showToast('Gerando dossiê PDF...');
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = 210, M = 15;
+    let y = M;
+
+    const fuelTotal    = fuelLogs.reduce((s,l) => s + (l.total_amount||0), 0);
+    const expenseTotal = expenseLogs.reduce((s,l) => s + (l.total_cost||0), 0);
+    const tco          = fuelTotal + expenseTotal;
+    const totalKm      = (currentVehicle.current_km||0) - (currentVehicle.initial_km||0);
+    const costPerKm    = totalKm > 0 ? tco / totalKm : 0;
+    const diyLogs      = expenseLogs.filter(l => l.is_diy);
+    const diySavings   = diyLogs.reduce((s,l) => s + (l.saved_labor_cost||0), 0);
+
+    // --- CABEÇALHO ---
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, W, 38, 'F');
+    doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.setTextColor(241, 245, 249);
+    doc.text('AUTOGESTOR PREMIUM', M, 20);
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+    doc.text('Dossiê Patrimonial Automotivo', M, 28);
+    doc.setTextColor(239, 68, 68);
+    doc.text('Gerado em: ' + new Date().toLocaleDateString('pt-BR'), W - M, 20, { align: 'right' });
+    y = 50;
+
+    // Helpers
+    const checkY = (h) => {
+      if (y + h > 275) { doc.addPage(); y = M + 5; }
+    };
+
+    const secTitle = (title) => {
+      checkY(14);
+      doc.setFillColor(30, 41, 59); doc.roundedRect(M, y, W - M*2, 8, 1, 1, 'F');
+      doc.setFillColor(239, 68, 68); doc.rect(M, y, 2, 8, 'F');
+      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(241, 245, 249);
+      doc.text(title.toUpperCase(), M + 5, y + 5.5);
+      y += 12;
+    };
+
+    const row = (label, val, accent) => {
+      checkY(7);
+      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 116, 139);
+      doc.text(label + ':', M + 3, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(accent ? [245, 158, 11] : [241, 245, 249]);
+      doc.text(String(val || '-'), M + 58, y);
+      y += 6;
+    };
+
+    // --- SEÇÃO 1: VEÍCULO ---
+    secTitle('1. Identificação do Veículo');
+    row('Marca / Modelo', (currentVehicle.brand||'') + ' ' + (currentVehicle.model||''));
+    row('Ano Fabricação / Modelo', (currentVehicle.year||'-') + ' / ' + (currentVehicle.year_model||'-'));
+    row('Cor', currentVehicle.color);
+    if (currentVehicle.doors) row('Portas', currentVehicle.doors + ' portas');
+    if (currentVehicle.power) row('Potência / Cilindradas', (currentVehicle.power||'-') + ' cv / ' + (currentVehicle.displacement||'-') + ' cc');
+    row('Placa', currentVehicle.plate, true);
+    row('RENAVAM', currentVehicle.renavam, true);
+    if (currentVehicle.chassis) row('Chassi', currentVehicle.chassis, true);
+    if (currentVehicle.engine_number) row('Número do Motor', currentVehicle.engine_number);
+    row('Combustível', currentVehicle.fuel_type);
+    row('Hodômetro Atual', fmtNum(currentVehicle.current_km) + ' km');
+    row('KM Inicial (cadastro)', fmtNum(currentVehicle.initial_km) + ' km');
+    if (currentVehicle.ipva_due_date) row('Venc. IPVA', fmtDate(currentVehicle.ipva_due_date));
+    if (currentVehicle.licensing_due_date) row('Venc. Licenciamento', fmtDate(currentVehicle.licensing_due_date));
+
+    // --- SEÇÃO 2: FINANCEIRO ---
+    y += 3; secTitle('2. Resumo Financeiro (Custo Total do Veículo)');
+    doc.autoTable({
+      startY: y, margin: { left: M, right: M },
+      head: [['Métrica', 'Valor']],
+      body: [
+        ['Combustível Total', fmtBRL(fuelTotal)],
+        ['Manutenções / Despesas Total', fmtBRL(expenseTotal)],
+        ['Custo Total Geral', fmtBRL(tco)],
+        ['Custo por KM', fmtBRL(costPerKm) + '/km'],
+        ['KM Registrado no Sistema', fmtNum(totalKm) + ' km'],
+        ['Economia Fazendo Você Mesmo', fmtBRL(diySavings)],
+        ['Serviços Próprios realizados', diyLogs.length + ' serviço(s)'],
+      ],
+      styles: { fontSize: 8, fillColor: [15,23,42], textColor: [241,245,249], lineColor: [51,65,85], lineWidth: 0.3, cellPadding: 3 },
+      headStyles: { fillColor: [30,41,59], textColor: [100,116,139], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [18,27,44] },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 110 }, 1: { textColor: [245,158,11], fontStyle: 'bold' } }
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // --- SEÇÃO 3: SEGURO ---
+    secTitle('3. Seguro Automotivo');
+    const ins = currentVehicle.insurance_current;
+    if (ins && ins.provider_name) {
+      row('Seguradora / Operadora', ins.provider_name);
+      row('Número da Apólice', ins.policy_number, true);
+      row('Prêmio Anual', fmtBRL(ins.premium_amount));
+      row('Franquia', fmtBRL(ins.deductible_amount));
+      row('Vigência', fmtDate(ins.start_date) + ' até ' + fmtDate(ins.end_date));
+      if (ins.emergency_phone) row('Tel. Emergência / Sinistro', ins.emergency_phone);
+      if (ins.coverage_details) {
+        checkY(10);
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(100,116,139);
+        doc.text('Coberturas:', M + 3, y); y += 5;
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(241,245,249);
+        const lines = doc.splitTextToSize(ins.coverage_details, W - M*2 - 6);
+        doc.text(lines, M + 3, y); y += lines.length * 4.5;
+      }
+    } else {
+      doc.setFontSize(8); doc.setTextColor(100,116,139);
+      doc.text('Nenhuma apólice cadastrada.', M + 3, y); y += 8;
+    }
+
+    // --- SEÇÃO 4: MANUTENÇÕES ---
+    if (expenseLogs.length > 0) {
+      y += 3; secTitle('4. Manutenções e Despesas');
+      doc.autoTable({
+        startY: y, margin: { left: M, right: M },
+        head: [['Data', 'Serviço', 'Categoria', 'KM', 'Peças', 'M.O.', 'Total']],
+        body: expenseLogs.map(l => [
+          fmtDate(l.date), l.service_type||'-', l.category||'-',
+          l.km_at_service ? fmtNum(l.km_at_service) : '-',
+          fmtBRL(l.parts_cost), fmtBRL(l.labor_cost), fmtBRL(l.total_cost)
+        ]),
+        styles: { fontSize: 7, fillColor: [15,23,42], textColor: [241,245,249], lineColor: [51,65,85], lineWidth: 0.2, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [30,41,59], textColor: [100,116,139], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [18,27,44] },
+        columnStyles: { 6: { textColor: [245,158,11], fontStyle: 'bold' } }
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+
+    // --- SEÇÃO 5: ABASTECIMENTOS ---
+    if (fuelLogs.length > 0) {
+      secTitle('5. Abastecimentos');
+      doc.autoTable({
+        startY: y, margin: { left: M, right: M },
+        head: [['Data', 'Combustível', 'KM', 'Litros', 'Preço/Litro', 'Total']],
+        body: fuelLogs.slice(0, 30).map(l => [
+          fmtDate(l.date), l.fuel_type||'-',
+          fmtNum(l.km_at_fill), (l.liters||0).toFixed(2) + ' L',
+          fmtBRL(l.price_per_liter), fmtBRL(l.total_amount)
+        ]),
+        styles: { fontSize: 7, fillColor: [15,23,42], textColor: [241,245,249], lineColor: [51,65,85], lineWidth: 0.2, cellPadding: 2 },
+        headStyles: { fillColor: [30,41,59], textColor: [100,116,139], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [18,27,44] },
+        columnStyles: { 5: { textColor: [245,158,11], fontStyle: 'bold' } }
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+
+    // --- SEÇÃO 6: SINISTROS ---
+    if (insuranceAcionamentos.length > 0) {
+      secTitle('6. Acionamentos do Seguro');
+      doc.autoTable({
+        startY: y, margin: { left: M, right: M },
+        head: [['Data', 'Tipo de Acionamento', 'Descrição', 'Franquia Paga']],
+        body: insuranceAcionamentos.map(c => [fmtDate(c.date), c.acionamento_type||'-', c.description||'-', fmtBRL(c.deductible_paid)]),
+        styles: { fontSize: 7.5, fillColor: [15,23,42], textColor: [241,245,249], lineColor: [51,65,85], lineWidth: 0.2, cellPadding: 3 },
+        headStyles: { fillColor: [30,41,59], textColor: [100,116,139], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [18,27,44] },
+        columnStyles: { 3: { textColor: [239,68,68] } }
+      });
+    }
+
+    // --- RODAPÉ EM TODAS AS PÁGINAS ---
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7); doc.setTextColor(100, 116, 139);
+      doc.text('AutoGestor Premium — Dossiê Patrimonial Confidencial', M, 290);
+      doc.text('Página ' + i + ' de ' + totalPages, W - M, 290, { align: 'right' });
+    }
+
+    // --- SALVA O ARQUIVO ---
+    const plate = (currentVehicle.plate||'veiculo').replace(/[^a-zA-Z0-9]/g, '');
+    const date  = new Date().toISOString().split('T')[0];
+    doc.save('Dossie_' + plate + '_' + date + '.pdf');
+    showToast('✅ Dossiê PDF gerado com sucesso!');
+
+  } catch (err) {
+    console.error('Erro ao gerar PDF:', err);
+    showToast('Erro ao gerar PDF: ' + err.message, true);
+  }
+}
+// ============================================================
+// HELPER: Mensagem de nenhum veículo selecionado
+// ============================================================
+function noVehicleMsg(icon) {
+  return `<div class="card" style="text-align:center;padding:60px;">
+    <p style="font-size:48px;margin-bottom:12px;">${icon}</p>
+    <p style="color:#94a3b8;">Selecione um veículo na sidebar para continuar.</p>
+    <button class="btn btn-primary" onclick="showPage('vehicles')" style="margin-top:16px;">Ir para Veículos</button>
+  </div>`;
+}
+</script>
+</body>
+</html>
