@@ -1535,9 +1535,13 @@ async function generatePDF() {
 
   sectionTitle('1. Identificação do Veículo');
   row('Marca / Modelo',`${currentVehicle.brand} ${currentVehicle.model}`);
-  row('Ano',currentVehicle.year);
+  row('Ano Fabricação / Modelo',`${currentVehicle.year||'-'} / ${currentVehicle.year_model||'-'}`);
+  if(currentVehicle.doors) row('Portas',currentVehicle.doors+' portas');
+  if(currentVehicle.power) row('Potência / Cilindradas',`${currentVehicle.power} cv / ${currentVehicle.displacement||'?'} cc`);
   row('Placa',currentVehicle.plate,true);
   row('RENAVAM',currentVehicle.renavam,true);
+  if(currentVehicle.chassis) row('Chassi (VIN)',currentVehicle.chassis,true);
+  if(currentVehicle.engine_number) row('Número do Motor',currentVehicle.engine_number);
   row('Hodômetro Atual',`${fmtNum(currentVehicle.current_km)} km`);
   row('Combustível',currentVehicle.fuel_type);
   if(currentVehicle.ipva_due_date) row('Venc. IPVA',fmtDate(currentVehicle.ipva_due_date));
