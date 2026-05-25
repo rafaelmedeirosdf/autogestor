@@ -12,7 +12,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260525_173715
+  Build: 20260525_174034
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -329,7 +329,7 @@ let currentVehicle = null;  // Veículo selecionado
 let allVehicles  = [];
 let fuelLogs     = [];
 let expenseLogs  = [];
-let insuranceAcionamentos = [];
+let insuranceClaims = [];
 let oficinas    = [];
 let motoristas  = [];
 
@@ -470,9 +470,9 @@ function subscribeToVehicleData(vehicleId) {
       renderCurrentPage();
     });
 
-  unsubAcionamentos = base.collection('insurance_acionamentos').orderBy('date','desc')
+  unsubAcionamentos = base.collection('insurance_claims').orderBy('date','desc')
     .onSnapshot(snap => {
-      insuranceAcionamentos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      insuranceClaims = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderCurrentPage();
     });
 }
@@ -2744,12 +2744,12 @@ async function generatePDF() {
     }
 
     // --- SEÇÃO 6: SINISTROS ---
-    if (insuranceAcionamentos.length > 0) {
+    if (insuranceClaims.length > 0) {
       secTitle('6. Acionamentos do Seguro');
       doc.autoTable({
         startY: y, margin: { left: M, right: M },
         head: [['Data', 'Tipo de Acionamento', 'Descrição', 'Franquia Paga']],
-        body: insuranceAcionamentos.map(c => [fmtDate(c.date), c.acionamento_type||'-', c.description||'-', fmtBRL(c.deductible_paid)]),
+        body: insuranceClaims.map(c => [fmtDate(c.date), c.acionamento_type||'-', c.description||'-', fmtBRL(c.deductible_paid)]),
         styles: { fontSize: 7.5, fillColor: [15,23,42], textColor: [241,245,249], lineColor: [51,65,85], lineWidth: 0.2, cellPadding: 3 },
         headStyles: { fillColor: [30,41,59], textColor: [100,116,139], fontStyle: 'bold' },
         alternateRowStyles: { fillColor: [18,27,44] },
