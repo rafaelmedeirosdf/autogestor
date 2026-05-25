@@ -12,7 +12,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260525_172434
+  Build: 20260525_173420
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -1153,7 +1153,7 @@ function renderFuel() {
       ${fuelLogs.length===0
         ? '<p style="color:#64748b;text-align:center;padding:30px;font-size:13px;">Nenhum abastecimento registrado.</p>'
         : `<div style="overflow-x:auto;"><table>
-          <thead><tr><th>Data</th><th>Combustível</th><th>KM</th><th>Litros</th><th>R$/L</th><th>Total</th><th>Consumo*</th><th>Posto</th><th>📷</th></tr></thead>
+          <thead><tr><th>Data</th><th>Combustível</th><th>KM</th><th>Litros</th><th>R$/L</th><th>Total</th><th>Consumo*</th><th>Posto</th><th>📷</th><th></th></tr></thead>
           <tbody>
             ${fuelLogs.map((log, i) => {
               const next = fuelLogs[i+1];
@@ -1172,6 +1172,7 @@ function renderFuel() {
                 '<td style="color:'+(kml?(kml<8?'#f87171':kml<12?'#fbbf24':'#4ade80'):'#475569')+';font-family:monospace;">'+(kml?kml.toFixed(1):'—')+'</td>' +
                 '<td style="color:#64748b;">'+(log.gas_station||'—')+'</td>' +
                 '<td>'+(log.pump_photo?'<img src="'+log.pump_photo+'" onclick="showPhotoModal(this.src)" style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid #334155;" title="Ver foto"/>':'—')+'</td>' +
+              '<td><button onclick="editFuelLog(\''+log.id+'\')" style="background:#334155;border:1px solid #475569;border-radius:6px;color:#f1f5f9;cursor:pointer;padding:4px 8px;font-size:12px;">✏️</button> <button onclick="deleteFuelLog(\''+log.id+'\')" style="background:#334155;border:1px solid #475569;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 8px;font-size:12px;">🗑️</button></td>' +
               '</tr>';
             }).join('')}
           </tbody>
@@ -1322,6 +1323,94 @@ function calcFuelPreview() {
       '<div style="text-align:center;"><p style="color:#64748b;font-size:11px;margin:0 0 2px;">Litros</p><p style="font-size:18px;font-weight:700;color:#60a5fa;margin:0;">'+liters.toFixed(2)+' L</p></div>' +
     '</div>';
   } else prev.innerHTML='';
+}
+
+function editFuelLog(logId) {
+  const log = fuelLogs.find(l => l.id === logId);
+  if (!log) { showToast('Registro não encontrado.', true); return; }
+
+  openModal('Editar Abastecimento', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label>Data *</label>
+        <input id="ef2_date" type="date" value="${log.date||''}"/>
+      </div>
+      <div class="form-group"><label>Combustível *</label>
+        <select id="ef2_fuel_type">
+          <option value="gasolina"          ${log.fuel_type==='gasolina'         ?'selected':''}>Gasolina</option>
+          <option value="etanol"            ${log.fuel_type==='etanol'           ?'selected':''}>Etanol / Álcool</option>
+          <option value="gasolina_aditivada"${log.fuel_type==='gasolina_aditivada'?'selected':''}>Gasolina Aditivada</option>
+          <option value="diesel"            ${log.fuel_type==='diesel'           ?'selected':''}>Diesel</option>
+        </select>
+      </div>
+      <div class="form-group"><label>KM *</label>
+        <input id="ef2_km" type="number" value="${log.km_at_fill||''}" style="font-family:monospace;"/>
+      </div>
+      <div class="form-group"><label>Litros *</label>
+        <input id="ef2_liters" type="number" step="0.01" value="${log.liters||''}"/>
+      </div>
+      <div class="form-group"><label>💲 Preço por Litro (R$)</label>
+        <input id="ef2_price_liter" type="number" step="0.001" value="${log.price_per_liter||''}"/>
+      </div>
+      <div class="form-group"><label>Valor Total (R$) *</label>
+        <input id="ef2_amount" type="number" step="0.01" value="${log.total_amount||''}"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1;"><label>Posto</label>
+        <input id="ef2_station" value="${log.gas_station||''}"/>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:12px 0;">
+      <input id="ef2_full" type="checkbox" ${log.full_tank?'checked':''} style="width:auto;"/>
+      <span style="font-size:13px;color:#cbd5e1;">Tanque cheio</span>
+    </label>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="updateFuelLog('${logId}')">💾 Salvar Alterações</button>
+    </div>
+  `);
+}
+
+async function updateFuelLog(logId) {
+  const date   = document.getElementById('ef2_date').value;
+  const km     = parseInt(document.getElementById('ef2_km').value) || 0;
+  const liters = parseFloat(document.getElementById('ef2_liters').value) || 0;
+  const amount = parseFloat(document.getElementById('ef2_amount').value) || 0;
+  const fuel_type = document.getElementById('ef2_fuel_type').value;
+
+  if (!date || !km || !liters || !amount) {
+    showToast('Preencha todos os campos obrigatórios.', true); return;
+  }
+
+  const priceLiter = parseFloat(document.getElementById('ef2_price_liter').value) || (liters > 0 ? amount/liters : 0);
+
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('vehicles').doc(currentVehicle.id)
+      .collection('fuel_logs').doc(logId)
+      .update({
+        date, km_at_fill:km, liters, total_amount:amount,
+        fuel_type, price_per_liter:priceLiter,
+        full_tank: document.getElementById('ef2_full')?.checked || false,
+        gas_station: document.getElementById('ef2_station').value.trim(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    closeModal();
+    showToast('Abastecimento atualizado!');
+  } catch(err) {
+    showToast('Erro ao atualizar: ' + (err.message||'Tente novamente.'), true);
+  }
+}
+
+async function deleteFuelLog(logId) {
+  if (!confirm('Excluir este abastecimento? Esta ação não pode ser desfeita.')) return;
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('vehicles').doc(currentVehicle.id)
+      .collection('fuel_logs').doc(logId)
+      .delete();
+    showToast('Abastecimento excluído.');
+  } catch(err) {
+    showToast('Erro ao excluir: ' + (err.message||'Tente novamente.'), true);
+  }
 }
 
 async function saveFuel() {
