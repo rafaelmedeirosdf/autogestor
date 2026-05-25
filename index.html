@@ -12,7 +12,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260525_180023
+  Build: 20260525_180835
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -402,29 +402,36 @@ function doLogin() {
     resetBtn();
   };
 
-  if (isMobile) {
-    sessionStorage.setItem('ag_logging_in', '1');
-    auth.signInWithRedirect(provider).catch(err => {
-      sessionStorage.removeItem('ag_logging_in');
-      showError('Erro: ' + (err.message || 'Tente novamente.'));
+  // Tenta popup primeiro, com fallback automático para redirect
+  auth.signInWithPopup(provider)
+    .then(() => { /* onAuthStateChanged cuida do resto */ })
+    .catch(err => {
+      console.error('Erro login popup:', err.code, err.message);
+
+      if (err.code === 'auth/popup-closed-by-user') {
+        // Usuário fechou o popup
+        showError('Login cancelado. Clique em "Entrar com Google" novamente.');
+        return;
+      }
+
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
+        // Popup bloqueado → tenta redirect
+        sessionStorage.setItem('ag_logging_in', '1');
+        auth.signInWithRedirect(provider).catch(e2 => {
+          sessionStorage.removeItem('ag_logging_in');
+          showError('Erro: ' + e2.message);
+        });
+        return;
+      }
+
+      if (err.code === 'auth/unauthorized-domain') {
+        showError('❌ Domínio não autorizado no Firebase. Adicione "rafaelmedeirosdf.github.io" em Authentication → Settings → Authorized domains.');
+        return;
+      }
+
+      // Qualquer outro erro — mostra completo
+      showError('Erro (' + (err.code||'?') + '): ' + (err.message || 'Tente novamente.'));
     });
-  } else {
-    auth.signInWithPopup(provider)
-      .then(() => { /* onAuthStateChanged cuida do resto */ })
-      .catch(err => {
-        // Se popup bloqueado, tenta redirect
-        if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-          if (err.code === 'auth/popup-blocked') {
-            sessionStorage.setItem('ag_logging_in', '1');
-            auth.signInWithRedirect(provider);
-          } else {
-            showError('Login cancelado. Tente novamente.');
-          }
-        } else {
-          showError('Erro ao fazer login: ' + (err.message || 'Tente novamente.'));
-        }
-      });
-  }
 }
 
 function doLogout() {
