@@ -12,7 +12,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260525_174414
+  Build: 20260525_174752
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -2639,7 +2639,7 @@ async function generatePDF() {
       doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 116, 139);
       doc.text(label + ':', M + 3, y);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(accent ? [245, 158, 11] : [241, 245, 249]);
+      if (accent) { doc.setTextColor(245, 158, 11); } else { doc.setTextColor(241, 245, 249); }
       doc.text(String(val || '-'), M + 58, y);
       y += 6;
     };
