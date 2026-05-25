@@ -12,7 +12,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260525_173420
+  Build: 20260525_173715
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -1362,11 +1362,48 @@ function editFuelLog(logId) {
       <input id="ef2_full" type="checkbox" ${log.full_tank?'checked':''} style="width:auto;"/>
       <span style="font-size:13px;color:#cbd5e1;">Tanque cheio</span>
     </label>
+
+    <div class="form-group">
+      <label>📷 Foto da Bomba / Comprovante</label>
+      <div id="ef2_photo_preview" style="margin-bottom:8px;">
+        ${log.pump_photo
+          ? `<div style="position:relative;display:inline-block;width:100%;">
+               <img src="${log.pump_photo}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid #334155;display:block;"/>
+               <p style="color:#4ade80;font-size:12px;margin:4px 0 0;">✅ Foto atual — selecione outra para substituir</p>
+             </div>`
+          : '<p style="color:#64748b;font-size:12px;margin:0;">Nenhuma foto salva</p>'}
+      </div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed #334155;border-radius:8px;padding:14px;cursor:pointer;color:#94a3b8;">
+        <span style="font-size:22px;">📷</span>
+        <div>
+          <p id="ef2_photo_name" style="margin:0;font-size:13px;font-weight:500;">Tirar foto ou selecionar nova</p>
+          <p style="margin:0;font-size:11px;">Câmera ou galeria — JPG, PNG</p>
+        </div>
+        <input type="file" id="ef2_photo_file" accept="image/*" capture="environment"
+               style="display:none;" onchange="previewEditFuelPhoto(this)"/>
+      </label>
+    </div>
+
     <div style="display:flex;gap:10px;margin-top:8px;">
       <button class="btn btn-secondary" style="flex:1;" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-primary" style="flex:1;" onclick="updateFuelLog('${logId}')">💾 Salvar Alterações</button>
     </div>
   `);
+}
+
+// Preview da nova foto no formulário de edição
+function previewEditFuelPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5*1024*1024) { showToast('Foto muito grande. Máx. 5MB.', true); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const p = document.getElementById('ef2_photo_preview');
+    if (p) p.innerHTML = '<img src="'+e.target.result+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid #334155;margin-bottom:4px;"/>';
+    const n = document.getElementById('ef2_photo_name');
+    if (n) n.textContent = '✅ ' + file.name;
+  };
+  reader.readAsDataURL(file);
 }
 
 async function updateFuelLog(logId) {
@@ -1382,17 +1419,31 @@ async function updateFuelLog(logId) {
 
   const priceLiter = parseFloat(document.getElementById('ef2_price_liter').value) || (liters > 0 ? amount/liters : 0);
 
+  // Processa nova foto se selecionada
+  let newPhoto = null;
+  const photoInput = document.getElementById('ef2_photo_file');
+  if (photoInput && photoInput.files[0]) {
+    try { newPhoto = await fileToBase64(photoInput.files[0]); }
+    catch(e) { showToast('Erro ao processar foto.', true); }
+  }
+
+  // Monta objeto de atualização
+  const updateData = {
+    date, km_at_fill:km, liters, total_amount:amount,
+    fuel_type, price_per_liter:priceLiter,
+    full_tank: document.getElementById('ef2_full')?.checked || false,
+    gas_station: document.getElementById('ef2_station').value.trim(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  // Só atualiza a foto se uma nova foi selecionada
+  if (newPhoto) updateData.pump_photo = newPhoto;
+
   try {
     await db.collection('users').doc(currentUser.uid)
       .collection('vehicles').doc(currentVehicle.id)
       .collection('fuel_logs').doc(logId)
-      .update({
-        date, km_at_fill:km, liters, total_amount:amount,
-        fuel_type, price_per_liter:priceLiter,
-        full_tank: document.getElementById('ef2_full')?.checked || false,
-        gas_station: document.getElementById('ef2_station').value.trim(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      .update(updateData);
     closeModal();
     showToast('Abastecimento atualizado!');
   } catch(err) {
