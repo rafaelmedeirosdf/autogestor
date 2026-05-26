@@ -12,7 +12,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260525_181207
+  Build: 20260526_003633
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -2649,7 +2649,7 @@ async function generatePDF() {
     const checkY = (h) => {
       if (y + h > 275) {
         // Rodapé da página
-        doc.setFontSize(7); doc.setTextColor(...GRAY);
+        doc.setFontSize(7); doc.setTextColor(71, 85, 105);
         doc.text('AutoGestor Premium — Dossiê Patrimonial', M, 288);
         doc.text('Pág. ' + doc.internal.getCurrentPageInfo().pageNumber, W-M, 288, { align:'right' });
         doc.addPage();
@@ -2662,26 +2662,29 @@ async function generatePDF() {
       const bg = color || DARK;
       doc.setFillColor(...bg);
       doc.roundedRect(M, y, W-M*2, 9, 1, 1, 'F');
-      doc.setFillColor(...RED);
+      doc.setFillColor(220, 38, 38);
       doc.rect(M, y, 2.5, 9, 'F');
-      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255, 255, 255);
       doc.text(title.toUpperCase(), M+6, y+6.2);
       y += 13;
     };
 
     const row = (label, val, highlight) => {
       checkY(7);
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GRAY);
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(71, 85, 105);
       doc.text(label+':', M+3, y);
       doc.setFont('helvetica','normal');
-      doc.setTextColor(highlight==='red'?RED : highlight==='amber'?AMBER : highlight==='green'?GREEN : BLACK);
+      if (highlight==='red') { doc.setTextColor(220,38,38); }
+      else if (highlight==='amber') { doc.setTextColor(180,100,0); }
+      else if (highlight==='green') { doc.setTextColor(21,128,61); }
+      else { doc.setTextColor(15,23,42); }
       doc.text(String(val||'-'), M+60, y);
       y += 6.5;
     };
 
     const divider = () => {
       checkY(5);
-      doc.setDrawColor(...LGRAY);
+      doc.setDrawColor(241, 245, 249);
       doc.setLineWidth(0.3);
       doc.line(M, y, W-M, y);
       y += 4;
@@ -2690,13 +2693,13 @@ async function generatePDF() {
     // ============================================================
     // CABEÇALHO
     // ============================================================
-    doc.setFillColor(...DARK);
+    doc.setFillColor(30, 41, 59);
     doc.rect(0, 0, W, 38, 'F');
-    doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+    doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(255, 255, 255);
     doc.text('AUTOGESTOR PREMIUM', M, 20);
     doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(148,163,184);
     doc.text('Dossiê Patrimonial Automotivo — Histórico Completo', M, 29);
-    doc.setTextColor(...RED);
+    doc.setTextColor(220, 38, 38);
     doc.text('Gerado em: '+new Date().toLocaleDateString('pt-BR'), W-M, 20, { align:'right' });
     doc.setTextColor(148,163,184);
     doc.text(new Date().toLocaleTimeString('pt-BR'), W-M, 29, { align:'right' });
@@ -2726,9 +2729,9 @@ async function generatePDF() {
     if (currentVehicle.licensing_due_date) row('Vencimento Licenciamento', fmtDate(currentVehicle.licensing_due_date));
     if (currentVehicle.notes) {
       checkY(12);
-      doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...GRAY);
+      doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(71, 85, 105);
       doc.text('Observações:', M+3, y); y+=5;
-      doc.setFont('helvetica','normal'); doc.setTextColor(...BLACK);
+      doc.setFont('helvetica','normal'); doc.setTextColor(15, 23, 42);
       const obsLines = doc.splitTextToSize(currentVehicle.notes, W-M*2-6);
       doc.text(obsLines, M+3, y); y += obsLines.length*4.5+3;
     }
@@ -2749,10 +2752,10 @@ async function generatePDF() {
         ['Economia Fazendo Você Mesmo', fmtBRL(diySavings)],
         ['Serviços Próprios realizados', diyLogs.length+' serviço(s)'],
       ],
-      styles: { fontSize:8, cellPadding:3, fillColor:WHITE, textColor:BLACK, lineColor:[203,213,225], lineWidth:0.3 },
-      headStyles: { fillColor:DARK, textColor:WHITE, fontStyle:'bold' },
-      alternateRowStyles: { fillColor:LGRAY },
-      columnStyles: { 0:{fontStyle:'bold', cellWidth:120}, 1:{textColor:RED, fontStyle:'bold'} }
+      styles: { fontSize:8, cellPadding:3, fillColor:[255,255,255], textColor:[15,23,42], lineColor:[203,213,225], lineWidth:0.3 },
+      headStyles: { fillColor:[30,41,59], textColor:[255,255,255], fontStyle:'bold' },
+      alternateRowStyles: { fillColor:[241,245,249] },
+      columnStyles: { 0:{fontStyle:'bold', cellWidth:120}, 1:{textColor:[220,38,38], fontStyle:'bold'} }
     });
     y = doc.lastAutoTable.finalY + 8;
 
@@ -2771,30 +2774,30 @@ async function generatePDF() {
       if (ins.sinister_phone) row('Tel. Sinistro (WhatsApp/Alt.)', ins.sinister_phone);
       if (ins.coverage_details) {
         checkY(14);
-        doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...GRAY);
+        doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(71, 85, 105);
         doc.text('Detalhes de Cobertura:', M+3, y); y+=5;
-        doc.setFont('helvetica','normal'); doc.setTextColor(...BLACK);
+        doc.setFont('helvetica','normal'); doc.setTextColor(15, 23, 42);
         const lines = doc.splitTextToSize(ins.coverage_details, W-M*2-6);
         doc.text(lines, M+3, y); y += lines.length*4.5+4;
       }
       // Acionamentos do seguro
       if (insuranceClaims.length > 0) {
         checkY(20);
-        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GRAY);
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(71, 85, 105);
         doc.text('Histórico de Acionamentos ('+insuranceClaims.length+')', M+3, y); y+=6;
         doc.autoTable({
           startY: y, margin:{left:M, right:M},
           head: [['Data','Tipo','Descrição','Franquia Paga']],
           body: insuranceClaims.map(c => [fmtDate(c.date), c.claim_type||'-', c.description||'-', fmtBRL(c.deductible_paid)]),
-          styles: { fontSize:7, cellPadding:2, fillColor:WHITE, textColor:BLACK, lineColor:[203,213,225], lineWidth:0.2 },
-          headStyles: { fillColor:DARK, textColor:WHITE, fontStyle:'bold' },
-          alternateRowStyles: { fillColor:LGRAY },
-          columnStyles: { 3:{textColor:RED} }
+          styles: { fontSize:7, cellPadding:2, fillColor:[255,255,255], textColor:[15,23,42], lineColor:[203,213,225], lineWidth:0.2 },
+          headStyles: { fillColor:[30,41,59], textColor:[255,255,255], fontStyle:'bold' },
+          alternateRowStyles: { fillColor:[241,245,249] },
+          columnStyles: { 3:{textColor:[220,38,38]} }
         });
         y = doc.lastAutoTable.finalY + 6;
       }
     } else {
-      doc.setFontSize(8); doc.setTextColor(...GRAY);
+      doc.setFontSize(8); doc.setTextColor(71, 85, 105);
       doc.text('Nenhuma apólice de seguro cadastrada.', M+3, y); y+=8;
     }
 
@@ -2835,7 +2838,7 @@ async function generatePDF() {
     });
 
     if (allEvents.length === 0) {
-      doc.setFontSize(8); doc.setTextColor(...GRAY);
+      doc.setFontSize(8); doc.setTextColor(71, 85, 105);
       doc.text('Nenhum registro de abastecimento ou manutenção.', M+3, y); y+=8;
     } else {
       // Mapa de cores por tipo
@@ -2865,14 +2868,14 @@ async function generatePDF() {
           lineColor: [203,213,225], lineWidth: 0.2,
           overflow: 'linebreak'
         },
-        headStyles: { fillColor:DARK, textColor:WHITE, fontStyle:'bold', fontSize:7.5 },
-        alternateRowStyles: { fillColor:LGRAY },
+        headStyles: { fillColor:[30,41,59], textColor:[255,255,255], fontStyle:'bold', fontSize:7.5 },
+        alternateRowStyles: { fillColor:[241,245,249] },
         columnStyles: {
           0: { cellWidth:22, fontStyle:'bold' },
           1: { cellWidth:32 },
           2: { cellWidth:80 },
           3: { cellWidth:22, halign:'right' },
-          4: { cellWidth:22, halign:'right', textColor:RED, fontStyle:'bold' }
+          4: { cellWidth:22, halign:'right', textColor:[220,38,38], fontStyle:'bold' }
         },
         // Colorir linhas de abastecimento diferente de manutenção
         didParseCell: (data) => {
@@ -2906,10 +2909,10 @@ async function generatePDF() {
           l.is_diy ? 'Sim' : 'Não',
           l.obd2_code||'-'
         ]),
-        styles: { fontSize:6.5, cellPadding:2, fillColor:WHITE, textColor:BLACK, lineColor:[203,213,225], lineWidth:0.2, overflow:'linebreak' },
-        headStyles: { fillColor:DARK, textColor:WHITE, fontStyle:'bold', fontSize:7 },
-        alternateRowStyles: { fillColor:LGRAY },
-        columnStyles: { 6:{textColor:RED, fontStyle:'bold'}, 7:{halign:'center'} }
+        styles: { fontSize:6.5, cellPadding:2, fillColor:[255,255,255], textColor:[15,23,42], lineColor:[203,213,225], lineWidth:0.2, overflow:'linebreak' },
+        headStyles: { fillColor:[30,41,59], textColor:[255,255,255], fontStyle:'bold', fontSize:7 },
+        alternateRowStyles: { fillColor:[241,245,249] },
+        columnStyles: { 6:{textColor:[220,38,38], fontStyle:'bold'}, 7:{halign:'center'} }
       });
       y = doc.lastAutoTable.finalY + 8;
     }
@@ -2940,10 +2943,10 @@ async function generatePDF() {
         startY: y, margin: { left:M, right:M },
         head: [['Data','Combust.','KM','Litros','R$/L','Total','Consumo','Posto']],
         body: logsComConsumo,
-        styles: { fontSize:6.5, cellPadding:2, fillColor:WHITE, textColor:BLACK, lineColor:[203,213,225], lineWidth:0.2 },
-        headStyles: { fillColor:DARK, textColor:WHITE, fontStyle:'bold', fontSize:7 },
-        alternateRowStyles: { fillColor:LGRAY },
-        columnStyles: { 5:{textColor:RED, fontStyle:'bold'} }
+        styles: { fontSize:6.5, cellPadding:2, fillColor:[255,255,255], textColor:[15,23,42], lineColor:[203,213,225], lineWidth:0.2 },
+        headStyles: { fillColor:[30,41,59], textColor:[255,255,255], fontStyle:'bold', fontSize:7 },
+        alternateRowStyles: { fillColor:[241,245,249] },
+        columnStyles: { 5:{textColor:[220,38,38], fontStyle:'bold'} }
       });
       y = doc.lastAutoTable.finalY + 8;
     }
@@ -2954,7 +2957,7 @@ async function generatePDF() {
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      doc.setFontSize(7); doc.setTextColor(...GRAY);
+      doc.setFontSize(7); doc.setTextColor(71, 85, 105);
       doc.text('AutoGestor Premium — Dossiê Patrimonial Confidencial — '+currentVehicle.plate, M, 290);
       doc.text('Página '+i+' de '+totalPages, W-M, 290, { align:'right' });
     }
