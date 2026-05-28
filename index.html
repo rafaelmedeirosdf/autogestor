@@ -12,7 +12,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260526_003633
+  Build: 20260528_003629
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -903,13 +903,22 @@ function vehicleCard(v) {
           <button
             onclick="openVehicleForm('${v.id}')"
             style="padding:9px 15px;font-size:16px;background:#334155;
-                   border:1px solid #475569;border-radius:8px;color:#f1f5f9;cursor:pointer;">
+                   border:1px solid #475569;border-radius:8px;color:#f1f5f9;cursor:pointer;"
+            title="Editar veículo">
             ✏️
+          </button>
+          <button
+            onclick="openIPVAForm('${v.id}')"
+            style="padding:9px 15px;font-size:13px;background:#334155;
+                   border:1px solid #475569;border-radius:8px;color:#fbbf24;cursor:pointer;"
+            title="Atualizar IPVA e Licenciamento">
+            📋
           </button>
           <button
             onclick="deleteVehicle('${v.id}')"
             style="padding:9px 15px;font-size:16px;background:#334155;
-                   border:1px solid #475569;border-radius:8px;color:#f87171;cursor:pointer;">
+                   border:1px solid #475569;border-radius:8px;color:#f87171;cursor:pointer;"
+            title="Excluir veículo">
             🗑️
           </button>
         </div>
@@ -992,11 +1001,15 @@ function openVehicleForm(vehicleId) {
           <option value="eletrico" ${v?.fuel_type==='eletrico'?'selected':''}>Elétrico</option>
         </select>
       </div>
-      <div class="form-group"><label>Venc. IPVA</label>
+      <div class="form-group">
+        <label>📋 Vencimento do IPVA</label>
         <input id="vf_ipva" type="date" value="${v?.ipva_due_date||''}"/>
+        ${v?.ipva_due_date ? '<p style="color:'+calcDaysRemaining(v.ipva_due_date)<0?'#f87171':calcDaysRemaining(v.ipva_due_date)<=60?'#fbbf24':'#4ade80'+';font-size:11px;margin:4px 0 0;">'+(calcDaysRemaining(v.ipva_due_date)<0?'⚠️ Vencido há '+Math.abs(calcDaysRemaining(v.ipva_due_date))+' dias':'✅ Vence em '+calcDaysRemaining(v.ipva_due_date)+' dias')+'</p>' : ''}
       </div>
-      <div class="form-group"><label>Venc. Licenciamento</label>
+      <div class="form-group">
+        <label>📄 Vencimento do Licenciamento</label>
         <input id="vf_licensing" type="date" value="${v?.licensing_due_date||''}"/>
+        ${v?.licensing_due_date ? '<p style="color:'+calcDaysRemaining(v.licensing_due_date)<0?'#f87171':calcDaysRemaining(v.licensing_due_date)<=60?'#fbbf24':'#4ade80'+';font-size:11px;margin:4px 0 0;">'+(calcDaysRemaining(v.licensing_due_date)<0?'⚠️ Vencido há '+Math.abs(calcDaysRemaining(v.licensing_due_date))+' dias':'✅ Vence em '+calcDaysRemaining(v.licensing_due_date)+' dias')+'</p>' : ''}
       </div>
     </div>
 
@@ -1041,6 +1054,84 @@ function openVehicleForm(vehicleId) {
       <button class="btn btn-primary" style="flex:1;" onclick="saveVehicle('${vehicleId||''}')">Salvar</button>
     </div>
   `);
+}
+
+// Modal rápido para atualizar IPVA e Licenciamento
+function openIPVAForm(vehicleId) {
+  const v = allVehicles.find(x => x.id === vehicleId);
+  if (!v) return;
+
+  const ipvaDays = v.ipva_due_date ? calcDaysRemaining(v.ipva_due_date) : null;
+  const licDays  = v.licensing_due_date ? calcDaysRemaining(v.licensing_due_date) : null;
+
+  const statusBadge = (days) => {
+    if (days === null) return '<span style="color:#64748b;font-size:11px;">Não cadastrado</span>';
+    if (days < 0)   return '<span style="background:rgba(239,68,68,.15);color:#f87171;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;">⚠️ Vencido há '+Math.abs(days)+' dias</span>';
+    if (days <= 60) return '<span style="background:rgba(245,158,11,.15);color:#fbbf24;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;">⚡ Vence em '+days+' dias</span>';
+    return '<span style="background:rgba(34,197,94,.15);color:#4ade80;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;">✅ Em dia — '+days+' dias</span>';
+  };
+
+  openModal('📋 IPVA e Licenciamento', `
+    <p style="color:#64748b;font-size:13px;margin:0 0 16px;">${v.brand} ${v.model} — Placa <span style="font-family:monospace;color:#f59e0b;font-weight:600;">${v.plate}</span></p>
+
+    <div style="background:#0f172a;border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <p style="color:#f1f5f9;font-weight:600;font-size:14px;margin:0;">📋 IPVA</p>
+        ${statusBadge(ipvaDays)}
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>Data de Vencimento do IPVA</label>
+        <input id="qi_ipva" type="date" value="${v.ipva_due_date||''}"
+               style="font-size:16px;padding:12px;"/>
+      </div>
+    </div>
+
+    <div style="background:#0f172a;border-radius:10px;padding:14px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <p style="color:#f1f5f9;font-weight:600;font-size:14px;margin:0;">📄 Licenciamento</p>
+        ${statusBadge(licDays)}
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>Data de Vencimento do Licenciamento</label>
+        <input id="qi_lic" type="date" value="${v.licensing_due_date||''}"
+               style="font-size:16px;padding:12px;"/>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveIPVAForm('${vehicleId}')">💾 Salvar Datas</button>
+    </div>
+  `);
+}
+
+async function saveIPVAForm(vehicleId) {
+  const ipva = document.getElementById('qi_ipva').value;
+  const lic  = document.getElementById('qi_lic').value;
+
+  if (!ipva && !lic) { showToast('Informe pelo menos uma data.', true); return; }
+
+  try {
+    const updateData = {};
+    if (ipva) updateData.ipva_due_date = ipva;
+    if (lic)  updateData.licensing_due_date = lic;
+    updateData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+    await db.collection('users').doc(currentUser.uid)
+      .collection('vehicles').doc(vehicleId)
+      .update(updateData);
+
+    // Atualizar o veículo atual se for o selecionado
+    if (currentVehicle?.id === vehicleId) {
+      if (ipva) currentVehicle.ipva_due_date = ipva;
+      if (lic)  currentVehicle.licensing_due_date = lic;
+    }
+
+    closeModal();
+    showToast('✅ Datas atualizadas com sucesso!');
+  } catch(err) {
+    showToast('Erro ao salvar: ' + (err.message||'Tente novamente.'), true);
+  }
 }
 
 // Preview da foto do veículo
