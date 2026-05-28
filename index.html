@@ -17,7 +17,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260528_163730
+  Build: 20260528_164118
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -705,9 +705,14 @@ function renderPainel() {
     <div class="card" style="border-color:#ef4444;margin-bottom:16px;">
       <p style="color:#f87171;font-weight:600;margin:0 0 10px;">🚨 Atenção Imediata</p>
       ${dangerAlerts.map(a => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(51,65,85,.5);">
-          <span style="color:#e2e8f0;">${a.icon} ${a.title}</span>
-          <span style="color:#f87171;font-family:monospace;font-size:12px;">${a.type==='km' ? Math.abs(a.kmRemaining).toLocaleString('pt-BR')+' km atrasado' : Math.abs(a.daysRemaining)+' dias vencido'}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(51,65,85,.5);gap:10px;flex-wrap:wrap;">
+          <div>
+            <span style="color:#e2e8f0;font-weight:500;">${a.icon} ${a.title}</span>
+            <span style="color:#f87171;font-family:monospace;font-size:12px;margin-left:10px;">${a.type==='km' ? Math.abs(a.kmRemaining).toLocaleString('pt-BR')+' km atrasado' : Math.abs(a.daysRemaining)+' dias vencido'}</span>
+          </div>
+          ${a.id==='ipva' ? `<button onclick="marcarPago('ipva')" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:#4ade80;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">✅ Marcar IPVA como pago</button>` : ''}
+          ${a.id==='licensing' ? `<button onclick="marcarPago('licensing')" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:#4ade80;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">✅ Marcar Licenciamento como pago</button>` : ''}
+          ${a.id==='insurance' ? `<button onclick="marcarSeguroObrigPago()" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:#4ade80;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">✅ Seguro Obrigatório pago</button>` : ''}
         </div>`).join('')}
     </div>` : ''}
 
@@ -2276,6 +2281,38 @@ async function saveClaim() {
 // MÓDULO: ALERTAS DE MANUTENÇÃO (MOTOR PREDITIVO)
 // ============================================================
 
+// Marca IPVA ou Licenciamento como pago direto do painel
+async function marcarPago(tipo) {
+  if (!currentVehicle?.id) return;
+  const campo = tipo === 'ipva' ? 'ipva_paid' : 'licensing_paid';
+  const nome  = tipo === 'ipva' ? 'IPVA' : 'Licenciamento';
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('vehicles').doc(currentVehicle.id)
+      .update({ [campo]: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    currentVehicle[campo] = true;
+    showToast('✅ ' + nome + ' marcado como pago!');
+    renderCurrentPage();
+  } catch(err) {
+    showToast('Erro: ' + (err.message||'Tente novamente.'), true);
+  }
+}
+
+// Marca Seguro Obrigatório como pago
+async function marcarSeguroObrigPago() {
+  if (!currentVehicle?.id) return;
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('vehicles').doc(currentVehicle.id)
+      .update({ seguro_obrig_paid: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    currentVehicle.seguro_obrig_paid = true;
+    showToast('✅ Seguro Obrigatório marcado como pago!');
+    renderCurrentPage();
+  } catch(err) {
+    showToast('Erro: ' + (err.message||'Tente novamente.'), true);
+  }
+}
+
 function calcDaysRemaining(dateStr) {
   if (!dateStr) return null;
   const now = new Date(); now.setHours(0,0,0,0);
@@ -2331,8 +2368,10 @@ function generateAlerts() {
   if (!currentVehicle.licensing_paid) {
     addDateAlert('licensing','Licenciamento','📄',currentVehicle.licensing_due_date,60);
   }
-  // Seguro obrigatório — só alerta se não tem apólice ativa ou está vencendo
-  addDateAlert('insurance','Seguro Obrigatório','🛡️',currentVehicle.insurance_current?.end_date,30);
+  // Seguro — só alerta se não marcado como pago
+  if (!currentVehicle.seguro_obrig_paid) {
+    addDateAlert('insurance','Seguro Obrigatório','🛡️',currentVehicle.insurance_current?.end_date,30);
+  }
 
   const order={danger:0,warn:1,ok:2,unknown:3};
   alerts.sort((a,b)=>order[a.status]-order[b.status]);
