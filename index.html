@@ -17,7 +17,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260528_164118
+  Build: 20260528_165203
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -597,19 +597,32 @@ const todayISO = () => new Date().toISOString().split('T')[0];
 
 // Converte um File para string base64 (data URL) — usado em fotos, CRLV, etc.
 // Comprime imagem antes de salvar (evita problemas de tamanho no Firestore)
+// Comprime imagem para caber no Firestore (limite ~750KB base64)
 function compressImage(file, maxWidth, quality) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
     reader.onload = (e) => {
       const img = new Image();
+      img.onerror = () => reject(new Error('Erro ao carregar imagem'));
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let w = img.width, h = img.height;
-        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality || 0.75));
+        // Tentar com qualidade progressivamente menor até caber no Firestore
+        const tryCompress = (w, q) => {
+          const canvas = document.createElement('canvas');
+          let width = img.width, height = img.height;
+          if (width > w) { height = Math.round(height * w / width); width = w; }
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          const result = canvas.toDataURL('image/jpeg', q);
+          // Firestore: limite ~750KB em base64 (1MB = 1048487 bytes, base64 overhead ~33%)
+          const sizeBytes = result.length * 0.75;
+          if (sizeBytes > 700000 && w > 400) {
+            // Ainda grande — reduzir mais
+            return tryCompress(Math.round(w * 0.7), q * 0.85);
+          }
+          return result;
+        };
+        resolve(tryCompress(maxWidth || 800, quality || 0.70));
       };
       img.src = e.target.result;
     };
@@ -1291,7 +1304,7 @@ async function saveVehicle(vehicleId) {
   // Foto do veículo
   const photoInput = document.getElementById('vf_photo_file');
   if (photoInput && photoInput.files[0]) {
-    try { data.photo_url = await compressImage(photoInput.files[0], 1200, 0.80); }
+    try { data.photo_url = await compressImage(photoInput.files[0], 800, 0.65); }
     catch(e) { try { data.photo_url = await fileToBase64(photoInput.files[0]); } catch(e2) { showToast('Erro ao processar foto.', true); } }
   }
 
@@ -1496,14 +1509,20 @@ function openFuelForm() {
     <div class="form-group">
       <label>📷 Foto da Bomba (opcional)</label>
       <div id="ff_photo_preview" style="margin-bottom:8px;"></div>
-      <label style="display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed #334155;border-radius:8px;padding:14px;cursor:pointer;color:#94a3b8;">
-        <span style="font-size:22px;">📷</span>
-        <div>
-          <p id="ff_photo_name" style="margin:0;font-size:13px;">Tirar foto ou selecionar</p>
-          <p style="margin:0;font-size:11px;">Câmera ou galeria</p>
-        </div>
-        <input type="file" id="ff_photo_file" accept="image/*" style="display:none;" onchange="previewFuelPhoto(this)"/>
-      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button type="button" onclick="document.getElementById('ff_cam').click()"
+          style="padding:12px 8px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
+          📷 Câmera
+        </button>
+        <button type="button" onclick="document.getElementById('ff_gal').click()"
+          style="padding:12px 8px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
+          🖼️ Galeria
+        </button>
+      </div>
+      <p id="ff_photo_name" style="color:#64748b;font-size:12px;margin:6px 0 0;text-align:center;">Nenhuma foto selecionada</p>
+      <input type="file" id="ff_cam" accept="image/*" capture="camera" style="display:none;" onchange="previewFuelPhoto(this)"/>
+      <input type="file" id="ff_gal" accept="image/*" style="display:none;" onchange="previewFuelPhoto(this)"/>
+      <input type="hidden" id="ff_photo_file"/>
     </div>
 
     <div style="display:flex;gap:10px;margin-top:8px;">
@@ -1516,18 +1535,19 @@ function openFuelForm() {
 
 function previewFuelPhoto(input) {
   const file = input.files[0]; if (!file) return;
-  if (file.size > 20*1024*1024) { showToast('Foto muito grande. Máx. 20MB.', true); input.value=''; return; }
-  // Comprime a imagem para preview e salvamento
-  compressImage(file, 1200, 0.80).then(compressed => {
+  if (file.size > 30*1024*1024) { showToast('Foto muito grande. Máx. 30MB.', true); input.value=''; return; }
+  const nameEl = document.getElementById('ff_photo_name');
+  if (nameEl) nameEl.textContent = '⏳ Comprimindo foto...';
+  compressImage(file, 800, 0.65).then(compressed => {
     const p = document.getElementById('ff_photo_preview');
-    if (p) p.innerHTML = '<img src="'+compressed+'" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid #334155;margin-bottom:4px;"/>';
-    const n = document.getElementById('ff_photo_name');
-    if (n) n.textContent = '✅ Foto pronta — ' + (file.size/1024).toFixed(0) + ' KB';
-    // Armazenar comprimida para salvar depois
-    input._compressed = compressed;
-  }).catch(() => {
-    const n = document.getElementById('ff_photo_name');
-    if (n) n.textContent = '✅ ' + file.name;
+    if (p) p.innerHTML = '<img src="'+compressed+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid #334155;margin-top:8px;"/>';
+    const kb = Math.round(compressed.length * 0.75 / 1024);
+    if (nameEl) nameEl.textContent = '✅ Foto pronta (' + kb + ' KB)';
+    // Guardar no elemento oculto como data URL
+    const hidden = document.getElementById('ff_photo_file');
+    if (hidden) hidden.dataset.photo = compressed;
+  }).catch(err => {
+    if (nameEl) nameEl.textContent = '❌ Erro: ' + err.message;
   });
 }
 
@@ -1599,15 +1619,20 @@ function editFuelLog(logId) {
              </div>`
           : '<p style="color:#64748b;font-size:12px;margin:0;">Nenhuma foto salva</p>'}
       </div>
-      <label style="display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed #334155;border-radius:8px;padding:14px;cursor:pointer;color:#94a3b8;">
-        <span style="font-size:22px;">📷</span>
-        <div>
-          <p id="ef2_photo_name" style="margin:0;font-size:13px;font-weight:500;">Tirar foto ou selecionar nova</p>
-          <p style="margin:0;font-size:11px;">Câmera ou galeria — JPG, PNG</p>
-        </div>
-        <input type="file" id="ef2_photo_file" accept="image/*"
-               style="display:none;" onchange="previewEditFuelPhoto(this)"/>
-      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button type="button" onclick="document.getElementById('ef2_cam').click()"
+          style="padding:11px 8px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
+          📷 Câmera
+        </button>
+        <button type="button" onclick="document.getElementById('ef2_gal').click()"
+          style="padding:11px 8px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
+          🖼️ Galeria
+        </button>
+      </div>
+      <p id="ef2_photo_name" style="color:#64748b;font-size:12px;margin:6px 0 0;text-align:center;">Selecione para substituir a foto atual</p>
+      <input type="file" id="ef2_cam" accept="image/*" capture="camera" style="display:none;" onchange="previewEditFuelPhoto(this)"/>
+      <input type="file" id="ef2_gal" accept="image/*" style="display:none;" onchange="previewEditFuelPhoto(this)"/>
+      <input type="hidden" id="ef2_photo_hidden"/>
     </div>
 
     <div style="display:flex;gap:10px;margin-top:8px;">
@@ -1621,15 +1646,18 @@ function editFuelLog(logId) {
 function previewEditFuelPhoto(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 5*1024*1024) { showToast('Foto muito grande. Máx. 5MB.', true); return; }
-  const reader = new FileReader();
-  reader.onload = (e) => {
+  const nameEl = document.getElementById('ef2_photo_name');
+  if (nameEl) nameEl.textContent = '⏳ Comprimindo...';
+  compressImage(file, 800, 0.65).then(compressed => {
     const p = document.getElementById('ef2_photo_preview');
-    if (p) p.innerHTML = '<img src="'+e.target.result+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid #334155;margin-bottom:4px;"/>';
-    const n = document.getElementById('ef2_photo_name');
-    if (n) n.textContent = '✅ ' + file.name;
-  };
-  reader.readAsDataURL(file);
+    if (p) p.innerHTML = '<img src="'+compressed+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid #334155;margin-top:8px;"/>';
+    const kb = Math.round(compressed.length * 0.75 / 1024);
+    if (nameEl) nameEl.textContent = '✅ Foto pronta (' + kb + ' KB)';
+    const hidden = document.getElementById('ef2_photo_hidden');
+    if (hidden) hidden.dataset.photo = compressed;
+  }).catch(err => {
+    if (nameEl) nameEl.textContent = '❌ Erro: ' + err.message;
+  });
 }
 
 async function updateFuelLog(logId) {
@@ -1647,10 +1675,17 @@ async function updateFuelLog(logId) {
 
   // Processa nova foto se selecionada
   let newPhoto = null;
-  const photoInput = document.getElementById('ef2_photo_file');
-  if (photoInput && photoInput.files[0]) {
-    try { newPhoto = await fileToBase64(photoInput.files[0]); }
-    catch(e) { showToast('Erro ao processar foto.', true); }
+  const ef2Hidden = document.getElementById('ef2_photo_hidden');
+  if (ef2Hidden?.dataset?.photo) {
+    newPhoto = ef2Hidden.dataset.photo;
+  } else {
+    const ef2Cam = document.getElementById('ef2_cam');
+    const ef2Gal = document.getElementById('ef2_gal');
+    const srcFile = ef2Cam?.files[0] || ef2Gal?.files[0];
+    if (srcFile) {
+      try { newPhoto = await compressImage(srcFile, 800, 0.65); }
+      catch(e) { showToast('Erro ao processar foto.', true); }
+    }
   }
 
   // Monta objeto de atualização
@@ -1700,18 +1735,16 @@ async function saveFuel() {
   if (km < (currentVehicle.current_km||0)) { showToast('KM ('+km+') menor que o hodômetro atual ('+currentVehicle.current_km+').', true); return; }
 
   let pumpPhoto = '';
-  const photoInput = document.getElementById('ff_photo_file');
-  if (photoInput && photoInput.files[0]) {
-    try {
-      // Usa versão comprimida se disponível, senão comprime agora
-      if (photoInput._compressed) {
-        pumpPhoto = photoInput._compressed;
-      } else {
-        pumpPhoto = await compressImage(photoInput.files[0], 1200, 0.80);
-      }
-    } catch(e) {
-      try { pumpPhoto = await fileToBase64(photoInput.files[0]); } catch(e2) {}
-    }
+  // Pegar foto do campo oculto (pode vir da câmera ou galeria)
+  const photoHidden = document.getElementById('ff_photo_file');
+  const photoCam    = document.getElementById('ff_cam');
+  const photoGal    = document.getElementById('ff_gal');
+  if (photoHidden?.dataset?.photo) {
+    pumpPhoto = photoHidden.dataset.photo;
+  } else if (photoCam?.files[0]) {
+    try { pumpPhoto = await compressImage(photoCam.files[0], 800, 0.65); } catch(e) {}
+  } else if (photoGal?.files[0]) {
+    try { pumpPhoto = await compressImage(photoGal.files[0], 800, 0.65); } catch(e) {}
   }
 
   const priceLiterField = parseFloat(document.getElementById('ff_price_liter')?.value)||0;
@@ -2680,7 +2713,7 @@ async function saveDriver(driverId) {
   // Foto do motorista
   const photoInput = document.getElementById('df_photo_file');
   if (photoInput && photoInput.files[0]) {
-    try { data.photo_url = await compressImage(photoInput.files[0], 800, 0.80); }
+    try { data.photo_url = await compressImage(photoInput.files[0], 800, 0.65); }
     catch(e) { try { data.photo_url = await fileToBase64(photoInput.files[0]); } catch(e2) { showToast('Erro ao processar foto.', true); } }
   }
 
