@@ -17,7 +17,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260528_165203
+  Build: 20260528_165811
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -725,7 +725,7 @@ function renderPainel() {
           </div>
           ${a.id==='ipva' ? `<button onclick="marcarPago('ipva')" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:#4ade80;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">✅ Marcar IPVA como pago</button>` : ''}
           ${a.id==='licensing' ? `<button onclick="marcarPago('licensing')" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:#4ade80;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">✅ Marcar Licenciamento como pago</button>` : ''}
-          ${a.id==='insurance' ? `<button onclick="marcarSeguroObrigPago()" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:#4ade80;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">✅ Seguro Obrigatório pago</button>` : ''}
+          ${a.id==='insurance' ? `<button onclick="marcarSPVATPago()" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:#4ade80;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">✅ SPVAT pago</button>` : ''}
         </div>`).join('')}
     </div>` : ''}
 
@@ -1158,6 +1158,34 @@ function openIPVAForm(vehicleId) {
       </div>
     </div>
 
+    <!-- SPVAT -->
+    <div style="background:#0f172a;border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid ${v.spvat_paid?'rgba(34,197,94,.3)':'rgba(100,116,139,.2)'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <p style="color:#f1f5f9;font-weight:600;font-size:14px;margin:0;">🛡️ SPVAT (Seguro Obrigatório)</p>
+          <p style="color:#64748b;font-size:11px;margin:3px 0 0;">Pago junto com o licenciamento — protege vítimas de acidentes</p>
+        </div>
+        ${v.spvat_paid ? '<span style="background:rgba(34,197,94,.15);color:#4ade80;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;">✅ Pago</span>' : '<span style="background:rgba(100,116,139,.1);color:#64748b;padding:2px 8px;border-radius:99px;font-size:11px;">Não informado</span>'}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button id="qi_spvat_sim" onclick="togglePago('spvat','sim')"
+          style="padding:10px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;
+                 background:${v.spvat_paid?'rgba(34,197,94,.2)':'#1e293b'};
+                 color:${v.spvat_paid?'#4ade80':'#64748b'};
+                 border:2px solid ${v.spvat_paid?'rgba(34,197,94,.5)':'#334155'};">
+          ✅ Já paguei
+        </button>
+        <button id="qi_spvat_nao" onclick="togglePago('spvat','nao')"
+          style="padding:10px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;
+                 background:${!v.spvat_paid?'rgba(100,116,139,.1)':'#1e293b'};
+                 color:${!v.spvat_paid?'#94a3b8':'#64748b'};
+                 border:2px solid ${!v.spvat_paid?'rgba(100,116,139,.3)':'#334155'};">
+          ❌ Não pago
+        </button>
+      </div>
+      <input type="hidden" id="qi_spvat_paid" value="${v.spvat_paid?'true':'false'}"/>
+    </div>
+
     <!-- LICENCIAMENTO -->
     <div style="background:#0f172a;border-radius:10px;padding:14px;margin-bottom:20px;border:1px solid ${licPago?'rgba(34,197,94,.3)':'rgba(100,116,139,.2)'};">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
@@ -1227,7 +1255,8 @@ async function saveIPVAForm(vehicleId) {
   if (!ipva && !lic) { showToast('Informe pelo menos uma data.', true); return; }
 
   try {
-    const updateData = { updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+    const spvatPaid = document.getElementById('qi_spvat_paid')?.value === 'true';
+  const updateData = { updatedAt: firebase.firestore.FieldValue.serverTimestamp(), spvat_paid: spvatPaid };
     if (ipva) { updateData.ipva_due_date = ipva; updateData.ipva_paid = ipvaPaid; }
     if (lic)  { updateData.licensing_due_date = lic; updateData.licensing_paid = licPaid; }
 
@@ -2332,14 +2361,14 @@ async function marcarPago(tipo) {
 }
 
 // Marca Seguro Obrigatório como pago
-async function marcarSeguroObrigPago() {
+async function marcarSPVATPago() {
   if (!currentVehicle?.id) return;
   try {
     await db.collection('users').doc(currentUser.uid)
       .collection('vehicles').doc(currentVehicle.id)
-      .update({ seguro_obrig_paid: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    currentVehicle.seguro_obrig_paid = true;
-    showToast('✅ Seguro Obrigatório marcado como pago!');
+      .update({ spvat_paid: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    currentVehicle.spvat_paid = true;
+    showToast('✅ SPVAT marcado como pago!');
     renderCurrentPage();
   } catch(err) {
     showToast('Erro: ' + (err.message||'Tente novamente.'), true);
@@ -2402,8 +2431,11 @@ function generateAlerts() {
     addDateAlert('licensing','Licenciamento','📄',currentVehicle.licensing_due_date,60);
   }
   // Seguro — só alerta se não marcado como pago
-  if (!currentVehicle.seguro_obrig_paid) {
-    addDateAlert('insurance','Seguro Obrigatório','🛡️',currentVehicle.insurance_current?.end_date,30);
+  // Alerta de seguro PRIVADO (apólice vencendo)
+  addDateAlert('insurance','Seguro Auto (Apólice)','🛡️',currentVehicle.insurance_current?.end_date,30);
+  // Alerta de SPVAT — só se não marcado como pago
+  if (!currentVehicle.spvat_paid) {
+    addDateAlert('spvat','SPVAT (Seg. Obrigatório)','📋',null,365);
   }
 
   const order={danger:0,warn:1,ok:2,unknown:3};
