@@ -12,7 +12,7 @@
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260528_003629
+  Build: 20260528_163119
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -589,6 +589,27 @@ const fmtDate = s => { if(!s) return '-'; const [y,m,d] = s.split('-'); return `
 const todayISO = () => new Date().toISOString().split('T')[0];
 
 // Converte um File para string base64 (data URL) — usado em fotos, CRLV, etc.
+// Comprime imagem antes de salvar (evita problemas de tamanho no Firestore)
+function compressImage(file, maxWidth, quality) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality || 0.75));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1071,68 +1092,136 @@ function openIPVAForm(vehicleId) {
     return '<span style="background:rgba(34,197,94,.15);color:#4ade80;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;">✅ Em dia — '+days+' dias</span>';
   };
 
-  openModal('📋 IPVA e Licenciamento', `
-    <p style="color:#64748b;font-size:13px;margin:0 0 16px;">${v.brand} ${v.model} — Placa <span style="font-family:monospace;color:#f59e0b;font-weight:600;">${v.plate}</span></p>
+  const ipvaPago = v.ipva_paid === true;
+  const licPago  = v.licensing_paid === true;
 
-    <div style="background:#0f172a;border-radius:10px;padding:14px;margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+  openModal('📋 IPVA e Licenciamento', `
+    <p style="color:#64748b;font-size:13px;margin:0 0 16px;">
+      ${v.brand} ${v.model} —
+      Placa <span style="font-family:monospace;color:#f59e0b;font-weight:600;">${v.plate}</span>
+    </p>
+
+    <!-- IPVA -->
+    <div style="background:#0f172a;border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid ${ipvaPago?'rgba(34,197,94,.3)':'rgba(100,116,139,.2)'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
         <p style="color:#f1f5f9;font-weight:600;font-size:14px;margin:0;">📋 IPVA</p>
         ${statusBadge(ipvaDays)}
       </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Data de Vencimento</label>
+        <input id="qi_ipva" type="date" value="${v.ipva_due_date||''}" style="font-size:15px;padding:10px;"/>
+      </div>
       <div class="form-group" style="margin:0;">
-        <label>Data de Vencimento do IPVA</label>
-        <input id="qi_ipva" type="date" value="${v.ipva_due_date||''}"
-               style="font-size:16px;padding:12px;"/>
+        <label>Situação do Pagamento</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+          <button id="qi_ipva_pago_sim" onclick="togglePago('ipva','sim')"
+            style="padding:10px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;
+                   background:${ipvaPago?'rgba(34,197,94,.2)':'#1e293b'};
+                   color:${ipvaPago?'#4ade80':'#64748b'};
+                   border:2px solid ${ipvaPago?'rgba(34,197,94,.5)':'#334155'};">
+            ✅ Já paguei
+          </button>
+          <button id="qi_ipva_pago_nao" onclick="togglePago('ipva','nao')"
+            style="padding:10px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;
+                   background:${!ipvaPago&&v.ipva_due_date?'rgba(239,68,68,.15)':'#1e293b'};
+                   color:${!ipvaPago&&v.ipva_due_date?'#f87171':'#64748b'};
+                   border:2px solid ${!ipvaPago&&v.ipva_due_date?'rgba(239,68,68,.4)':'#334155'};">
+            ❌ Não pago
+          </button>
+        </div>
+        <input type="hidden" id="qi_ipva_paid" value="${ipvaPago?'true':'false'}"/>
       </div>
     </div>
 
-    <div style="background:#0f172a;border-radius:10px;padding:14px;margin-bottom:20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <!-- LICENCIAMENTO -->
+    <div style="background:#0f172a;border-radius:10px;padding:14px;margin-bottom:20px;border:1px solid ${licPago?'rgba(34,197,94,.3)':'rgba(100,116,139,.2)'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
         <p style="color:#f1f5f9;font-weight:600;font-size:14px;margin:0;">📄 Licenciamento</p>
         ${statusBadge(licDays)}
       </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Data de Vencimento</label>
+        <input id="qi_lic" type="date" value="${v.licensing_due_date||''}" style="font-size:15px;padding:10px;"/>
+      </div>
       <div class="form-group" style="margin:0;">
-        <label>Data de Vencimento do Licenciamento</label>
-        <input id="qi_lic" type="date" value="${v.licensing_due_date||''}"
-               style="font-size:16px;padding:12px;"/>
+        <label>Situação do Pagamento</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+          <button id="qi_lic_pago_sim" onclick="togglePago('lic','sim')"
+            style="padding:10px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;
+                   background:${licPago?'rgba(34,197,94,.2)':'#1e293b'};
+                   color:${licPago?'#4ade80':'#64748b'};
+                   border:2px solid ${licPago?'rgba(34,197,94,.5)':'#334155'};">
+            ✅ Já paguei
+          </button>
+          <button id="qi_lic_pago_nao" onclick="togglePago('lic','nao')"
+            style="padding:10px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;
+                   background:${!licPago&&v.licensing_due_date?'rgba(239,68,68,.15)':'#1e293b'};
+                   color:${!licPago&&v.licensing_due_date?'#f87171':'#64748b'};
+                   border:2px solid ${!licPago&&v.licensing_due_date?'rgba(239,68,68,.4)':'#334155'};">
+            ❌ Não pago
+          </button>
+        </div>
+        <input type="hidden" id="qi_lic_paid" value="${licPago?'true':'false'}"/>
       </div>
     </div>
 
     <div style="display:flex;gap:10px;">
       <button class="btn btn-secondary" style="flex:1;" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" style="flex:1;" onclick="saveIPVAForm('${vehicleId}')">💾 Salvar Datas</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveIPVAForm('${vehicleId}')">💾 Salvar</button>
     </div>
   `);
 }
 
+// Alterna entre pago/não pago nos botões do modal
+function togglePago(tipo, opcao) {
+  const paidInput = document.getElementById('qi_'+tipo+'_paid');
+  const btnSim    = document.getElementById('qi_'+tipo+'_pago_sim');
+  const btnNao    = document.getElementById('qi_'+tipo+'_pago_nao');
+  if (!paidInput || !btnSim || !btnNao) return;
+
+  const isPago = opcao === 'sim';
+  paidInput.value = isPago ? 'true' : 'false';
+
+  // Botão SIM
+  btnSim.style.background = isPago ? 'rgba(34,197,94,.2)' : '#1e293b';
+  btnSim.style.color      = isPago ? '#4ade80' : '#64748b';
+  btnSim.style.border     = '2px solid ' + (isPago ? 'rgba(34,197,94,.5)' : '#334155');
+
+  // Botão NÃO
+  btnNao.style.background = !isPago ? 'rgba(239,68,68,.15)' : '#1e293b';
+  btnNao.style.color      = !isPago ? '#f87171' : '#64748b';
+  btnNao.style.border     = '2px solid ' + (!isPago ? 'rgba(239,68,68,.4)' : '#334155');
+}
+
 async function saveIPVAForm(vehicleId) {
-  const ipva = document.getElementById('qi_ipva').value;
-  const lic  = document.getElementById('qi_lic').value;
+  const ipva    = document.getElementById('qi_ipva').value;
+  const lic     = document.getElementById('qi_lic').value;
+  const ipvaPaid = document.getElementById('qi_ipva_paid').value === 'true';
+  const licPaid  = document.getElementById('qi_lic_paid').value === 'true';
 
   if (!ipva && !lic) { showToast('Informe pelo menos uma data.', true); return; }
 
   try {
-    const updateData = {};
-    if (ipva) updateData.ipva_due_date = ipva;
-    if (lic)  updateData.licensing_due_date = lic;
-    updateData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    const updateData = { updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+    if (ipva) { updateData.ipva_due_date = ipva; updateData.ipva_paid = ipvaPaid; }
+    if (lic)  { updateData.licensing_due_date = lic; updateData.licensing_paid = licPaid; }
 
     await db.collection('users').doc(currentUser.uid)
       .collection('vehicles').doc(vehicleId)
       .update(updateData);
 
-    // Atualizar o veículo atual se for o selecionado
     if (currentVehicle?.id === vehicleId) {
-      if (ipva) currentVehicle.ipva_due_date = ipva;
-      if (lic)  currentVehicle.licensing_due_date = lic;
+      if (ipva) { currentVehicle.ipva_due_date = ipva; currentVehicle.ipva_paid = ipvaPaid; }
+      if (lic)  { currentVehicle.licensing_due_date = lic; currentVehicle.licensing_paid = licPaid; }
     }
 
     closeModal();
-    showToast('✅ Datas atualizadas com sucesso!');
+    showToast('✅ Datas e situação atualizadas!');
   } catch(err) {
     showToast('Erro ao salvar: ' + (err.message||'Tente novamente.'), true);
   }
 }
+
 
 // Preview da foto do veículo
 function previewVehiclePhoto(input) {
@@ -1190,8 +1279,8 @@ async function saveVehicle(vehicleId) {
   // Foto do veículo
   const photoInput = document.getElementById('vf_photo_file');
   if (photoInput && photoInput.files[0]) {
-    try { data.photo_url = await fileToBase64(photoInput.files[0]); }
-    catch(e) { showToast('Erro ao processar foto.', true); }
+    try { data.photo_url = await compressImage(photoInput.files[0], 1200, 0.80); }
+    catch(e) { try { data.photo_url = await fileToBase64(photoInput.files[0]); } catch(e2) { showToast('Erro ao processar foto.', true); } }
   }
 
   // CRLV em PDF
@@ -1401,7 +1490,7 @@ function openFuelForm() {
           <p id="ff_photo_name" style="margin:0;font-size:13px;">Tirar foto ou selecionar</p>
           <p style="margin:0;font-size:11px;">Câmera ou galeria</p>
         </div>
-        <input type="file" id="ff_photo_file" accept="image/*" capture="environment" style="display:none;" onchange="previewFuelPhoto(this)"/>
+        <input type="file" id="ff_photo_file" accept="image/*" style="display:none;" onchange="previewFuelPhoto(this)"/>
       </label>
     </div>
 
@@ -1415,14 +1504,19 @@ function openFuelForm() {
 
 function previewFuelPhoto(input) {
   const file = input.files[0]; if (!file) return;
-  if (file.size > 5*1024*1024) { showToast('Foto muito grande. Máx. 5MB.', true); return; }
-  const reader = new FileReader();
-  reader.onload = (e) => {
+  if (file.size > 20*1024*1024) { showToast('Foto muito grande. Máx. 20MB.', true); input.value=''; return; }
+  // Comprime a imagem para preview e salvamento
+  compressImage(file, 1200, 0.80).then(compressed => {
     const p = document.getElementById('ff_photo_preview');
-    if (p) p.innerHTML = '<img src="'+e.target.result+'" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;border:1px solid #334155;margin-bottom:4px;"/>';
-    const n = document.getElementById('ff_photo_name'); if (n) n.textContent = '✅ '+file.name;
-  };
-  reader.readAsDataURL(file);
+    if (p) p.innerHTML = '<img src="'+compressed+'" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid #334155;margin-bottom:4px;"/>';
+    const n = document.getElementById('ff_photo_name');
+    if (n) n.textContent = '✅ Foto pronta — ' + (file.size/1024).toFixed(0) + ' KB';
+    // Armazenar comprimida para salvar depois
+    input._compressed = compressed;
+  }).catch(() => {
+    const n = document.getElementById('ff_photo_name');
+    if (n) n.textContent = '✅ ' + file.name;
+  });
 }
 
 function calcFromPriceLiter() {
@@ -1499,7 +1593,7 @@ function editFuelLog(logId) {
           <p id="ef2_photo_name" style="margin:0;font-size:13px;font-weight:500;">Tirar foto ou selecionar nova</p>
           <p style="margin:0;font-size:11px;">Câmera ou galeria — JPG, PNG</p>
         </div>
-        <input type="file" id="ef2_photo_file" accept="image/*" capture="environment"
+        <input type="file" id="ef2_photo_file" accept="image/*"
                style="display:none;" onchange="previewEditFuelPhoto(this)"/>
       </label>
     </div>
@@ -1595,7 +1689,18 @@ async function saveFuel() {
 
   let pumpPhoto = '';
   const photoInput = document.getElementById('ff_photo_file');
-  if (photoInput && photoInput.files[0]) { try { pumpPhoto = await fileToBase64(photoInput.files[0]); } catch(e) {} }
+  if (photoInput && photoInput.files[0]) {
+    try {
+      // Usa versão comprimida se disponível, senão comprime agora
+      if (photoInput._compressed) {
+        pumpPhoto = photoInput._compressed;
+      } else {
+        pumpPhoto = await compressImage(photoInput.files[0], 1200, 0.80);
+      }
+    } catch(e) {
+      try { pumpPhoto = await fileToBase64(photoInput.files[0]); } catch(e2) {}
+    }
+  }
 
   const priceLiterField = parseFloat(document.getElementById('ff_price_liter')?.value)||0;
   const priceLiter = priceLiterField>0 ? priceLiterField : (liters>0 ? amount/liters : 0);
@@ -2361,8 +2466,8 @@ async function saveDriver(driverId) {
   // Foto do motorista
   const photoInput = document.getElementById('df_photo_file');
   if (photoInput && photoInput.files[0]) {
-    try { data.photo_url = await fileToBase64(photoInput.files[0]); }
-    catch(e) { showToast('Erro ao processar foto.', true); }
+    try { data.photo_url = await compressImage(photoInput.files[0], 800, 0.80); }
+    catch(e) { try { data.photo_url = await fileToBase64(photoInput.files[0]); } catch(e2) { showToast('Erro ao processar foto.', true); } }
   }
 
   // CNH Digital (PDF ou imagem)
