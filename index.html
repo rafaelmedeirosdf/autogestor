@@ -7,12 +7,17 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>AutoGestor Premium</title>
+<meta name="theme-color" content="#ef4444"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="AutoGestor"/>
 
 <!-- ============================================================
   AUTOGESTOR PREMIUM — Sistema de Gestão de Frota Automotiva
   Arquivo único HTML — sem instalação necessária
   Firebase via CDN + Tailwind via CDN
-  Build: 20260528_163119
+  Build: 20260528_163730
 ============================================================ -->
 
 <!-- Tailwind CSS via CDN -->
@@ -32,6 +37,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 
 <!-- Google Fonts -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%23ef4444'/%3E%3Crect width='512' height='512' rx='80' fill='url(%23g)'/%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23dc2626'/%3E%3Cstop offset='1' stop-color='%23991b1b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ctext x='256' y='340' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='white' text-anchor='middle'%3EAG%3C/text%3E%3Ctext x='256' y='430' font-family='Arial,sans-serif' font-size='80' fill='rgba(255,255,255,0.7)' text-anchor='middle'%3EPREMIUM%3C/text%3E%3C/svg%3E"/>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%23ef4444'/%3E%3Ctext x='256' y='340' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='white' text-anchor='middle'%3EAG%3C/text%3E%3Ctext x='256' y='430' font-family='Arial,sans-serif' font-size='80' fill='rgba(255,255,255,0.7)' text-anchor='middle'%3EPREMIUM%3C/text%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 
@@ -1782,10 +1789,18 @@ function renderExpenses() {
         <td style="color:#94a3b8;">${fmtBRL(log.labor_cost)}</td>
         <td style="font-weight:600;">${fmtBRL(log.total_cost)}</td>
         <td>${log.obd2_code?`<span style="font-family:monospace;color:#f87171;background:rgba(239,68,68,.1);padding:2px 6px;border-radius:4px;font-size:11px;">${log.obd2_code}</span>`:''}</td>
-        <td>${log.receipt_url?`<a href="${log.receipt_url}" target="_blank" style="color:#60a5fa;font-size:12px;">📎 Ver</a>`:''}</td>
+        <td>${log.receipt_url
+          ? (log.receipt_url.startsWith('data:image')
+            ? `<img src="${log.receipt_url}" onclick="showPhotoModal(this.src)" style="width:38px;height:38px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid #334155;" title="Ver nota fiscal"/>`
+            : `<a href="${log.receipt_url}" target="_blank" style="color:#60a5fa;font-size:12px;text-decoration:none;">📄 Nota</a>`)
+          : '—'}</td>
+        <td style="white-space:nowrap;">
+          <button onclick="editExpense('${log.id}')" style="background:#334155;border:1px solid #475569;border-radius:6px;color:#f1f5f9;cursor:pointer;padding:4px 8px;font-size:12px;margin-right:4px;">✏️</button>
+          <button onclick="deleteExpense('${log.id}')" style="background:#334155;border:1px solid #475569;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 8px;font-size:12px;">🗑️</button>
+        </td>
       </tr>`;
     });
-    tableHtml = `<div style="overflow-x:auto;"><table><thead><tr><th>Data</th><th>Serviço</th><th>Categoria</th><th>KM</th><th>Peças</th><th>M.O.</th><th>Total</th><th>OBD2</th><th>Comprov.</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    tableHtml = `<div style="overflow-x:auto;"><table><thead><tr><th>Data</th><th>Serviço</th><th>Categoria</th><th>KM</th><th>Peças</th><th>M.O.</th><th>Total</th><th>OBD2</th><th>Nota</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   el.innerHTML = `
@@ -1807,6 +1822,159 @@ function renderExpenses() {
     <div class="card" style="padding:0;overflow:hidden;">${tableHtml}</div>`;
 }
 
+
+function editExpense(logId) {
+  const log = expenseLogs.find(l => l.id === logId);
+  if (!log) { showToast('Registro não encontrado.', true); return; }
+
+  selectedCat = log.category || 'preventiva';
+  const workshopOptions = oficinas.map(w => `<option value="${w.id}" ${log.workshop_id===w.id?'selected':''}>${w.name}</option>`).join('');
+
+  const catButtons = CATEGORIES.map(c =>
+    `<div id="cat_${c.v}" onclick="selectCat('${c.v}')"
+      style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #334155;
+             border-radius:8px;cursor:pointer;font-size:12px;color:#94a3b8;">${c.i} ${c.l}</div>`
+  ).join('');
+
+  openModal('Editar Despesa / Manutenção', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label>Data *</label>
+        <input id="ef_date" type="date" value="${log.date||''}"/>
+      </div>
+      <div class="form-group"><label>KM no Serviço</label>
+        <input id="ef_km" type="number" value="${log.km_at_service||''}" style="font-family:monospace;"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Categoria *</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;" id="catGrid">
+        ${catButtons}
+      </div>
+    </div>
+    <div class="form-group"><label>Tipo de Serviço *</label>
+      <input id="ef_service" value="${log.service_type||''}" placeholder="Ex: Troca de óleo..."/>
+    </div>
+    <div id="obd2_field" class="${log.category==='corretiva'?'':'hidden'} form-group">
+      <label>Código OBD2 (opcional)</label>
+      <input id="ef_obd2" value="${log.obd2_code||''}" style="font-family:monospace;text-transform:uppercase;"/>
+    </div>
+    <div class="card" style="margin-bottom:14px;background:#0f172a;">
+      <p style="color:#94a3b8;font-weight:600;font-size:13px;margin:0 0 10px;">💰 Divisão de Custos</p>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;">
+        <input id="ef_diy" type="checkbox" ${log.is_diy?'checked':''} style="width:auto;" onchange="toggleDIY()"/>
+        <span style="color:#cbd5e1;font-size:13px;">✋ Eu mesmo fiz este serviço</span>
+      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Valor das Peças (R$)</label>
+          <input id="ef_parts" type="number" step="0.01" value="${log.parts_cost||0}" oninput="calcExpenseTotal()"/>
+        </div>
+        <div class="form-group"><label>Valor da Mão de Obra (R$)</label>
+          <input id="ef_labor" type="number" step="0.01" value="${log.is_diy?0:log.labor_cost||0}" ${log.is_diy?'disabled':''} oninput="calcExpenseTotal()"/>
+        </div>
+      </div>
+      <div id="diy_saving_field" class="${log.is_diy?'':'hidden'} form-group">
+        <label>💚 M.O. que você economizou (R$)</label>
+        <input id="ef_saved" type="number" step="0.01" value="${log.saved_labor_cost||0}"/>
+      </div>
+      <div id="expenseTotal" style="text-align:right;color:#f59e0b;font-size:13px;font-weight:600;">
+        Total: ${fmtBRL((log.parts_cost||0)+(log.is_diy?0:log.labor_cost||0))}
+      </div>
+    </div>
+    <div class="form-group"><label>Oficina</label>
+      <select id="ef_workshop"><option value="">— Próprio / Não especificado —</option>${workshopOptions}</select>
+    </div>
+    <div class="form-group"><label>Descrição / Observações</label>
+      <textarea id="ef_desc" rows="2" style="resize:none;">${log.description||''}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>🧾 Foto da Nota Fiscal / Comprovante</label>
+      <div id="ef_receipt_preview" style="margin-bottom:8px;">
+        ${log.receipt_url
+          ? (log.receipt_url.startsWith('data:image')
+            ? `<img src="${log.receipt_url}" style="width:100%;max-height:180px;object-fit:contain;border-radius:8px;border:1px solid #334155;background:#0f172a;margin-bottom:4px;"/><p style="color:#4ade80;font-size:11px;margin:0;">✅ Nota atual — selecione outra para substituir</p>`
+            : `<div style="background:#0f172a;border:1px solid #22c55e;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;"><span style="font-size:24px;">📄</span><div><p style="margin:0;font-size:13px;font-weight:600;color:#4ade80;">Nota fiscal salva</p><a href="${log.receipt_url}" target="_blank" class="btn btn-secondary" style="font-size:11px;padding:3px 8px;text-decoration:none;display:inline-block;margin-top:4px;">Ver PDF</a></div></div>`)
+          : '<p style="color:#64748b;font-size:12px;margin:0;">Nenhuma nota salva</p>'}
+      </div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed #334155;border-radius:8px;padding:12px;cursor:pointer;color:#94a3b8;">
+        <span style="font-size:20px;">🧾</span>
+        <div>
+          <p id="ef_receipt_name" style="margin:0;font-size:13px;font-weight:500;">Fotografar nota ou selecionar</p>
+          <p style="margin:0;font-size:11px;">JPG, PNG ou PDF</p>
+        </div>
+        <input type="file" id="ef_receipt_file" accept="image/*,.pdf" style="display:none;" onchange="previewExpenseReceipt(this)"/>
+      </label>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="updateExpense('${logId}')">💾 Salvar Alterações</button>
+    </div>
+  `);
+  setTimeout(() => selectCat(selectedCat), 50);
+}
+
+async function updateExpense(logId) {
+  const date    = document.getElementById('ef_date').value;
+  const service = document.getElementById('ef_service').value.trim();
+  if (!date || !service) { showToast('Preencha Data e Tipo de Serviço.', true); return; }
+
+  const isDiy   = document.getElementById('ef_diy').checked;
+  const parts   = parseFloat(document.getElementById('ef_parts').value)||0;
+  const labor   = isDiy ? 0 : (parseFloat(document.getElementById('ef_labor').value)||0);
+  const workshopEl = document.getElementById('ef_workshop');
+
+  const updateData = {
+    date, category: selectedCat, service_type: service,
+    km_at_service: parseInt(document.getElementById('ef_km').value)||null,
+    parts_cost: parts, labor_cost: labor, is_diy: isDiy,
+    saved_labor_cost: isDiy ? (parseFloat(document.getElementById('ef_saved')?.value)||0) : 0,
+    total_cost: parts + labor,
+    obd2_code: selectedCat==='corretiva' ? (document.getElementById('ef_obd2')?.value||'').toUpperCase() : '',
+    workshop_id: workshopEl.value || null,
+    workshop_name: workshopEl.value ? workshopEl.options[workshopEl.selectedIndex]?.text||'' : null,
+    description: document.getElementById('ef_desc').value.trim(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  // Nota fiscal
+  const receiptInput = document.getElementById('ef_receipt_file');
+  if (receiptInput && receiptInput.files[0]) {
+    try {
+      const file = receiptInput.files[0];
+      if (file.type.startsWith('image/')) {
+        updateData.receipt_url = await compressImage(file, 1200, 0.80);
+      } else {
+        updateData.receipt_url = await fileToBase64(file);
+      }
+      updateData.receipt_name = file.name;
+    } catch(e) { showToast('Erro ao processar nota fiscal.', true); }
+  }
+
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('vehicles').doc(currentVehicle.id)
+      .collection('expense_logs').doc(logId)
+      .update(updateData);
+    closeModal();
+    showToast('Despesa atualizada!');
+  } catch(err) {
+    showToast('Erro ao atualizar: ' + (err.message||'Tente novamente.'), true);
+  }
+}
+
+async function deleteExpense(logId) {
+  if (!confirm('Excluir esta despesa? Esta ação não pode ser desfeita.')) return;
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('vehicles').doc(currentVehicle.id)
+      .collection('expense_logs').doc(logId)
+      .delete();
+    showToast('Despesa excluída.');
+  } catch(err) {
+    showToast('Erro ao excluir: ' + (err.message||'Tente novamente.'), true);
+  }
+}
 
 function openExpenseForm() {
   selectedCat = 'preventiva';
@@ -2155,9 +2323,16 @@ function generateAlerts() {
     alerts.push({id,type:'date',title,icon,daysRemaining:days,status,formattedDate:fmtDate(dateStr)});
   };
 
-  addDateAlert('ipva','IPVA','📋',currentVehicle.ipva_due_date,60);
-  addDateAlert('licensing','Licenciamento','📄',currentVehicle.licensing_due_date,60);
-  addDateAlert('insurance','Apólice de Seguro','🛡️',currentVehicle.insurance_current?.end_date,30);
+  // Só alerta IPVA se não foi marcado como pago
+  if (!currentVehicle.ipva_paid) {
+    addDateAlert('ipva','IPVA','📋',currentVehicle.ipva_due_date,60);
+  }
+  // Só alerta Licenciamento se não foi marcado como pago
+  if (!currentVehicle.licensing_paid) {
+    addDateAlert('licensing','Licenciamento','📄',currentVehicle.licensing_due_date,60);
+  }
+  // Seguro obrigatório — só alerta se não tem apólice ativa ou está vencendo
+  addDateAlert('insurance','Seguro Obrigatório','🛡️',currentVehicle.insurance_current?.end_date,30);
 
   const order={danger:0,warn:1,ok:2,unknown:3};
   alerts.sort((a,b)=>order[a.status]-order[b.status]);
